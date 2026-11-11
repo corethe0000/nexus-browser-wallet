@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nexus dApp test page</title>
+    <style>
+      :root {
+        --bg: #f4f6f9;
+        --surface: #fff;
+        --line: #dde3ea;
+        --text: #142234;
+        --muted: #5f6f82;
+        --accent: #2f80ed;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0d1724;
+          --surface: #142234;
+          --line: #24364c;
+          --text: #e6edf5;
+          --muted: #93a4b8;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.5 system-ui, sans-serif;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 24px 16px;
+        display: grid;
+        gap: 16px;
+      }
+      section {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+        display: grid;
+        gap: 10px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0;
+      }
+      h2 {
+        font-size: 15px;
+        margin: 0;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      button {
+        font: inherit;
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+      }
+      input {
+        font: inherit;
+        padding: 6px 8px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--text);
+        min-width: 0;
+        flex: 1;
+      }
+      pre {
+        margin: 0;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-all;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Nexus dApp test page</h1>
+      <section>
+        <div id="detect">Looking for window.nexus...</div>
+        <div class="row">
+          <button id="connect">Connect</button>
+          <button id="network">Network</button>
+          <button id="accounts">Accounts</button>
+          <button id="balances">Balances</button>
+          <button id="disconnect">Disconnect</button>
+        </div>
+      </section>
+      <section>
+        <h2>Send</h2>
+        <div class="row">
+          <input id="to" placeholder="to (address or name)" />
+          <input id="amount" placeholder="amount" />
+        </div>
+        <div class="row">
+          <input id="token" placeholder="token (empty = NXS)" />
+          <input id="reference" placeholder="reference (optional)" />
+          <button id="send">Send</button>
+        </div>
+      </section>
+      <section>
+        <h2>Assets and invoices</h2>
+        <div class="row">
+          <button id="assets">Assets</button>
+          <input id="invoice" placeholder="invoice address" />
+          <button id="payinvoice">Pay invoice</button>
+        </div>
+      </section>
+      <section>
+        <h2>Market</h2>
+        <div class="row">
+          <input id="market" placeholder="market like TOKEN/NXS" />
+          <button id="orders">Orders</button>
+          <button id="myorders">My orders</button>
+        </div>
+        <div class="row">
+          <input id="ordertxid" placeholder="order txid" />
+          <button id="fillorder">Fill</button>
+          <button id="cancelorder">Cancel</button>
+        </div>
+        <div class="row">
+          <input id="side" placeholder="buy or sell" value="sell" />
+          <input id="oamount" placeholder="amount" />
+          <input id="oprice" placeholder="price" />
+          <button id="placeorder">Place</button>
+        </div>
+      </section>
+      <section>
+        <h2>Sign</h2>
+        <div class="row">
+          <input id="nonce" placeholder="nonce" value="testnonce123" />
+          <input id="statement" placeholder="statement (optional)" value="Log in to the test page" />
+          <button id="signin">Sign in</button>
+        </div>
+        <div class="row">
+          <input id="message" placeholder="message" value="hello from the test page" />
+          <button id="signmessage">Sign message</button>
+        </div>
+      </section>
+      <section>
+        <h2>Result</h2>
+        <pre id="result">-</pre>
+        <h2>Events</h2>
+        <pre id="events">-</pre>
+      </section>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const show = (label, v) => ($('result').textContent = label + '\n' + JSON.stringify(v, null, 2));
+      const fail = (e) => show('error ' + e.code, e.message);
+      const events = [];
+
+      function call(method, params) {
+        if (!window.nexus) {
+          return fail({ code: 0, message: 'no window.nexus' });
+        }
+        $('result').textContent = 'waiting for ' + method + '...';
+        window.nexus.request({ method, params }).then((r) => show('ok ' + method, r), fail);
+      }
+
+      function ready() {
+        $('detect').textContent = window.nexus ? 'window.nexus found' : 'window.nexus not found';
+        if (window.nexus) {
+          for (const ev of ['accountsChanged', 'disconnect']) {
+            window.nexus.on(ev, (d) => {
+              events.push(ev + ' ' + JSON.stringify(d));
+              $('events').textContent = events.join('\n');
+            });
+          }
+        }
+      }
+      if (window.nexus) {
+        ready();
+      } else {
+        window.addEventListener('nexus#initialized', ready, { once: true });
+        setTimeout(ready, 1500);
+      }
+
+      $('connect').onclick = () => call('nexus_connect');
+      $('network').onclick = () => call('nexus_getNetwork');
+      $('accounts').onclick = () => call('nexus_getAccounts');
+      $('balances').onclick = () => call('nexus_getBalances');
+      $('disconnect').onclick = () => call('nexus_disconnect');
+      $('assets').onclick = () => call('nexus_getAssets');
+      $('payinvoice').onclick = () => call('nexus_payInvoice', { address: $('invoice').value });
+      $('orders').onclick = () => call('nexus_getOrders', { market: $('market').value });
+      $('myorders').onclick = () => call('nexus_getMyOrders', { market: $('market').value });
+      $('fillorder').onclick = () => call('nexus_fillOrder', { market: $('market').value, txid: $('ordertxid').value });
+      $('cancelorder').onclick = () => call('nexus_cancelOrder', { market: $('market').value, txid: $('ordertxid').value });
+      $('placeorder').onclick = () => call('nexus_placeOrder', { market: $('market').value, side: $('side').value, amount: $('oamount').value, price: $('oprice').value });
+      $('signin').onclick = () => call('nexus_signIn', { nonce: $('nonce').value, statement: $('statement').value || undefined });
+      $('signmessage').onclick = () => call('nexus_signMessage', { message: $('message').value });
+      $('send').onclick = () =>
+        call('nexus_send', {
+          to: $('to').value,
+          amount: $('amount').value,
+          token: $('token').value || undefined,
+          reference: $('reference').value || undefined,
+        });
+    </script>
+  </body>
+</html>

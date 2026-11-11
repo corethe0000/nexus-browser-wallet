@@ -1,0 +1,21 @@
+{
+  "name": "nexus-wallet-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Types and helpers for websites that use the Nexus Wallet extension, and sign-in checks for servers",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/types/sdk/src/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/types/sdk/src/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.json"
+  }
+}

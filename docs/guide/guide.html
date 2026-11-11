@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nexus Wallet - browser extension guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --blue1: #18b1ff; --blue2: #0482d8; --ink: #14263a; --muted: #5f7186; --line: #e3e9f0; --soft: #e8f5fe; --bg: #f3f6fa;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font: 11pt/1.5 'IBM Plex Sans', 'Segoe UI', sans-serif; color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; height: 297mm; padding: 18mm 18mm 16mm; position: relative; overflow: hidden; page-break-after: always; background: #fff; }
+  .page:last-child { page-break-after: auto; }
+  .page .foot { position: absolute; left: 18mm; right: 18mm; bottom: 8mm; display: flex; justify-content: space-between; font-size: 8pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 3mm; }
+  h1 { font-size: 22pt; margin: 0 0 4mm; line-height: 1.2; }
+  h2 { font-size: 17pt; margin: 0 0 3mm; color: var(--blue2); }
+  h3 { font-size: 12pt; margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 3mm; }
+  .lead { font-size: 12pt; color: var(--muted); margin-bottom: 6mm; }
+  .kicker { font-size: 9pt; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--blue2); margin-bottom: 2mm; }
+  code, pre { font-family: 'IBM Plex Mono', Consolas, monospace; }
+  code { font-size: 9.5pt; background: var(--soft); padding: .3mm 1.2mm; border-radius: 1.2mm; }
+  pre { font-size: 8.6pt; line-height: 1.45; background: #0b2033; color: #dbeaf7; padding: 4mm 5mm; border-radius: 3mm; margin: 2mm 0 4mm; white-space: pre-wrap; }
+  pre .c { color: #7fa7c6; }
+  pre .k { color: #6fd0ff; }
+  pre .s { color: #ffd38a; }
+  ul { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.2mm; }
+
+  /* cover */
+  .cover { background: linear-gradient(140deg, var(--blue1), var(--blue2)); color: #fff; padding: 0; }
+  .cover .circle { position: absolute; border-radius: 50%; background: rgba(255,255,255,.08); }
+  .cover .inner { position: relative; padding: 30mm 22mm 0; }
+  .cover .logo { width: 70mm; }
+  .cover h1 { font-size: 34pt; margin: 18mm 0 4mm; color: #fff; }
+  .cover .sub { font-size: 14pt; opacity: .92; max-width: 140mm; }
+  .cover .tags { margin-top: 10mm; display: flex; gap: 3mm; flex-wrap: wrap; }
+  .cover .tag { border: 1px solid rgba(255,255,255,.5); border-radius: 20mm; padding: 1.5mm 4.5mm; font-size: 10pt; }
+  .cover .shots { position: absolute; left: 22mm; right: 22mm; bottom: 26mm; display: flex; gap: 7mm; justify-content: center; align-items: flex-end; }
+  .cover .shots img { width: 52mm; border-radius: 4mm; box-shadow: 0 6mm 14mm rgba(0,30,60,.35); }
+  .cover .shots img.mid { width: 58mm; }
+  .cover .meta { position: absolute; left: 22mm; bottom: 10mm; font-size: 9pt; opacity: .85; }
+
+  /* screenshots */
+  .shot { border-radius: 3.5mm; box-shadow: 0 1.5mm 6mm rgba(16,42,70,.18); border: 1px solid var(--line); display: block; }
+  .row { display: flex; gap: 6mm; align-items: flex-start; }
+  .row.center { justify-content: center; }
+  .col { flex: 1; min-width: 0; }
+  figure { margin: 0; }
+  figcaption { font-size: 8.5pt; color: var(--muted); margin-top: 1.5mm; text-align: center; }
+  .w45 { width: 45mm; } .w50 { width: 50mm; } .w55 { width: 55mm; } .w60 { width: 60mm; } .wfull { width: 100%; }
+
+  /* boxes */
+  .cards { display: flex; gap: 5mm; margin: 4mm 0; }
+  .card { flex: 1; border: 1px solid var(--line); border-radius: 3.5mm; padding: 4mm 5mm; background: #fff; box-shadow: 0 1mm 4mm rgba(16,42,70,.06); }
+  .card.blue { background: linear-gradient(140deg, var(--blue1), var(--blue2)); color: #fff; border: 0; }
+  .card.blue h3, .card.blue p { color: #fff; }
+  .card h3 { margin-top: 0; }
+  .note { background: var(--soft); border-left: 1.2mm solid var(--blue2); border-radius: 2mm; padding: 3mm 4mm; font-size: 10pt; margin: 3mm 0; }
+  .warn { background: #fff6e0; border-left-color: #d99a00; }
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps li { counter-increment: s; position: relative; padding-left: 10mm; margin-bottom: 2.5mm; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: .2mm; width: 6.5mm; height: 6.5mm; border-radius: 50%; background: var(--blue2); color: #fff; font-weight: 600; font-size: 9pt; display: flex; align-items: center; justify-content: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 2mm 0 4mm; }
+  th, td { text-align: left; padding: 1.8mm 2.5mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .05em; }
+  .ok { color: #1a8a5a; font-weight: 600; }
+  .todo { color: #b06a00; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- 1 cover -->
+<section class="page cover">
+  <div class="circle" style="width:120mm;height:120mm;right:-40mm;top:-40mm"></div>
+  <div class="circle" style="width:90mm;height:90mm;left:-35mm;top:120mm"></div>
+  <div class="inner">
+    <img class="logo" src="../../public/img/nexus-logo-white.png" alt="Nexus">
+    <h1>Nexus Wallet<br>in your browser</h1>
+    <div class="sub">Install the extension, create an account and you have a working Nexus wallet. No desktop wallet download, no gigabytes of blockchain, no waiting for a sync.</div>
+    <div class="tags">
+      <span class="tag">Chrome</span><span class="tag">Edge</span><span class="tag">Brave</span><span class="tag">Opera</span><span class="tag">Firefox</span><span class="tag">Sign in with Nexus</span><span class="tag">Open source</span>
+    </div>
+  </div>
+  <div class="shots">
+    <img src="shots/06-new-wallet.png" alt="">
+    <img class="mid" src="shots/10-home.png" alt="">
+    <img src="shots/21-site-sign-in.png" alt="">
+  </div>
+  <div class="meta">Version 0.1.0 &middot; November 2026 &middot; preview, tested on the Nexus test network</div>
+</section>
+
+<!-- 2 what it is -->
+<section class="page">
+  <div class="kicker">Overview</div>
+  <h1>What the Nexus Wallet extension is</h1>
+  <p class="lead">A complete Nexus wallet that lives in the browser toolbar, like MetaMask does for other chains. It keeps your login in the browser, shows balances and history, sends and receives NXS and tokens, and lets websites ask you to connect, sign in or pay.</p>
+
+  <div class="cards">
+    <div class="card blue">
+      <h3>Light wallet: sign in this browser</h3>
+      <p>The extension does all the signing itself. It only talks to a Nexus node to read the chain and to hand over finished transactions. Your username, password and PIN never leave the browser, and nothing has to be downloaded or synced on your computer.</p>
+      <p><b>Best for:</b> everyone who just wants a wallet.</p>
+    </div>
+    <div class="card">
+      <h3>With the desktop wallet</h3>
+      <p>The extension connects to the core of the Nexus desktop wallet on the same computer (or to your own node). The core holds the login and signs, the extension is a fast window to it, also for websites.</p>
+      <p><b>Best for:</b> people who already run the desktop wallet, and staking.</p>
+    </div>
+  </div>
+
+  <h3>What you can do</h3>
+  <div class="row">
+    <ul class="col">
+      <li>Create a new Nexus account right in the extension</li>
+      <li>Send and receive NXS and tokens, by address or by name</li>
+      <li>Claim incoming payments and assets, the toolbar icon counts them</li>
+      <li>Take back a payment the receiver did not claim in time</li>
+      <li>Transaction history and details with a link to the explorer</li>
+      <li>Accounts, tokens, names and assets</li>
+    </ul>
+    <ul class="col">
+      <li>Invoices: send, pay, cancel</li>
+      <li>Market orders on the Nexus DEX</li>
+      <li>Contacts, password, PIN and recovery phrase</li>
+      <li>Auto lock, settings backup, light and dark look</li>
+      <li>Websites: connect, Sign in with Nexus, payment requests</li>
+      <li>12 languages: English, German, French, Italian, Spanish, Portuguese, Dutch, Polish, Turkish, Indonesian, Filipino, Croatian</li>
+    </ul>
+  </div>
+
+  <div class="row center" style="margin-top:4mm">
+    <figure><img class="shot w50" src="shots/10-home.png"><figcaption>Home: total, tokens and accounts</figcaption></figure>
+    <figure><img class="shot w50" src="shots/30-home-dark.png"><figcaption>The same in dark mode</figcaption></figure>
+  </div>
+  <div class="foot"><span>Nexus Wallet browser extension</span><span>2</span></div>
+</section>
+
+<!-- 3 install -->
+<section class="page">
+  <div class="kicker">Step 1</div>
+  <h1>Install the extension</h1>
+  <p class="lead">Until the extension is published in the Chrome Web Store and on Firefox Add-ons, it is installed from the release zip. It takes about a minute.</p>
+
+  <h3>Chrome, Edge, Brave, Opera</h3>
+  <ol class="steps">
+    <li>Download <code>nexus-wallet-extension-0.1.0-chrome.zip</code> from the release page and unzip it into a folder you keep (the browser loads it from there).</li>
+    <li>Open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>) and switch on <b>Developer mode</b>.</li>
+    <li>Click <b>Load unpacked</b> and choose the unzipped folder. The Nexus icon appears in the toolbar (pin it from the puzzle menu if it does not).</li>
+  </ol>
+  <div class="row">
+    <figure class="col"><img class="shot wfull" src="install/install-1-devmode.png"><figcaption>Developer mode on, then Load unpacked</figcaption></figure>
+    <figure class="col"><img class="shot wfull" src="install/install-2-folder.png"><figcaption>Choose the unzipped folder</figcaption></figure>
+  </div>
+
+  <h3>Firefox</h3>
+  <p>Open <code>about:debugging</code>, This Firefox, <b>Load Temporary Add-on</b> and pick <code>manifest.json</code> in the unzipped <code>nexus-wallet-extension-0.1.0-firefox.zip</code>. Firefox removes a temporary add-on when it closes, so for daily use Firefox needs the signed version from Firefox Add-ons (planned).</p>
+
+  <div class="note warn">This preview is not signed by a store yet. Install it only from the official release page, and check that the folder you load is the one you unzipped.</div>
+  <div class="foot"><span>Nexus Wallet browser extension</span><span>3</span></div>
+</section>
+
+<!-- 4 create account -->
+<section class="page">
+  <div class="kicker">Step 2</div>
+  <h1>Create your account</h1>
+  <p class="lead">Without a desktop wallet: tick <b>Sign in this browser</b>, connect to a Nexus node, create the account. That is all.</p>
+
+  <div class="row">
+    <figure><img class="shot w45" src="shots/02-setup-public-node.png"><figcaption>Connect to a node, no login on it</figcaption></figure>
+    <figure><img class="shot w45" src="shots/04-create-account.png"><figcaption>Username, password and PIN</figcaption></figure>
+    <figure><img class="shot w45" src="shots/05-account-created.png"><figcaption>Made and sent to the network</figcaption></figure>
+  </div>
+
+  <ol class="steps" style="margin-top:5mm">
+    <li><b>Node address.</b> Any Nexus node with its API open works, because this mode never logs in on the node. A public node of the Nexus network is enough, nothing is downloaded or synced on your computer.</li>
+    <li><b>Create a new account.</b> Username (at least 2 characters), password (at least 8) and PIN (at least 4, asked for every transaction). The extension builds your signature chain, with its default account, trust account and keys, and signs it in the browser.</li>
+    <li><b>Wait for one block.</b> On mainnet the first transaction carries a small proof of work, one to three minutes with the window open. After the next block you log in with the same username, password and PIN.</li>
+  </ol>
+  <div class="note">The account is a normal Nexus signature chain. You can log in with it in the desktop wallet at any time, and the other way round: an account made in the desktop wallet works in the extension.</div>
+  <div class="foot"><span>Nexus Wallet browser extension</span><span>4</span></div>
+</section>
+
+<!-- 5 ready -->
+<section class="page">
+  <div class="kicker">Step 3</div>
+  <h1>Your wallet is ready</h1>
+  <p class="lead">Log in and the wallet is there: balance, accounts, an address to receive. Share the address, or your name, and you can receive NXS.</p>
+  <div class="row center">
+    <figure><img class="shot w55" src="shots/06-new-wallet.png"><figcaption>A brand new wallet</figcaption></figure>
+    <figure><img class="shot w55" src="shots/07-receive.png"><figcaption>Receive: address and QR code</figcaption></figure>
+  </div>
+  <h3>How login works in this mode</h3>
+  <ul>
+    <li>The extension finds your account by its crypto register on the chain and checks your password and PIN against its keys. All of it happens in the browser.</li>
+    <li>Username and password stay in memory only until you log out or close the browser. The PIN is asked again for every transaction and never stored.</li>
+    <li>The node only sees finished, signed transactions, the same as when the desktop wallet sends them.</li>
+  </ul>
+  <div class="foot"><span>Nexus Wallet browser extension</span><span>5</span></div>
+</section>
+
+<!-- 6 send and receive -->
+<section class="page">
+  <div class="kicker">Everyday use</div>
+  <h1>Send and receive</h1>
+  <div class="row">
+    <figure><img class="shot w45" src="shots/12-send.png"><figcaption>Send: from, to, amount</figcaption></figure>
+    <figure><img class="shot w45" src="shots/13-review.png"><figcaption>Check and confirm with the PIN</figcaption></figure>
+    <figure><img class="shot w45" src="shots/14-sent.png"><figcaption>On its way, in the next block</figcaption></figure>
+  </div>
+  <h3>Sending</h3>
+  <p>Pick the account to pay from, type an address or a name (<code>bob</code>, <code>bob:savings</code>, a global name) or pick a contact, enter the amount and review. Nothing leaves the wallet before you confirm with your PIN.</p>
+  <h3>Receiving and claiming</h3>
+  <p>On Nexus a payment waits until the receiver claims it. The wallet finds payments sent to you, shows how many wait on the toolbar icon, and <b>Claim all</b> takes them in one transaction. If a payment is not claimed in time (7 days by default, you choose when sending), the sender can take it back from its details.</p>
+  <div class="foot"><span>Nexus Wallet browser extension</span><span>6</span></div>
+</section>
+
+<!-- 7 history -->
+<section class="page">
+  <div class="kicker">Everyday use</div>
+  <h1>History, details and more</h1>
+  <div class="row center">
+    <figure><img class="shot w55" src="shots/15-activity.png"><figcaption>Activity</figcaption></figure>
+    <figure><img class="shot w55" src="shots/16-tx-details.png"><figcaption>Transaction details</figcaption></figure>
+  </div>
+  <h3>Also in the wallet</h3>
+  <ul>
+    <li><b>Accounts, tokens, names, assets:</b> create them from the Accounts and Assets tabs. Network fees are shown before you confirm.</li>
+    <li><b>Invoices:</b> send an invoice with items to another user, pay or reject the ones sent to you.</li>
+    <li><b>Market:</b> see the order book of a pair, place, fill and cancel orders.</li>
+    <li><b>Security:</b> change password or PIN, set a recovery phrase, recover the account with it. Auto lock after a set time.</li>
+    <li><b>Staking</b> runs inside a Nexus core, so it is done in the desktop wallet mode or on your own node. The light wallet shows the trust account.</li>
+  </ul>
+  <div class="foot"><span>Nexus Wallet browser extension</span><span>7</span></div>
+</section>
+
+<!-- 8 websites -->
+<section class="page">
+  <div class="kicker">For websites</div>
+  <h1>Connect, sign in and pay on websites</h1>
+  <p class="lead">Every website can talk to the wallet through <code>window.nexus</code>. The site asks, the wallet opens a window, you decide. The site never sees your password or PIN.</p>
+  <div class="row">
+    <figure><img class="shot w45" src="shots/20-site-connect.png"><figcaption>A site asks to connect</figcaption></figure>
+    <figure><img class="shot w45" src="shots/21-site-sign-in.png"><figcaption>Sign in with Nexus</figcaption></figure>
+    <figure><img class="shot w45" src="shots/23-site-payment.png"><figcaption>A payment request</figcaption></figure>
+  </div>
+<pre><span class="c">// connect: the user approves once per site</span>
+<span class="k">const</span> info = <span class="k">await</span> window.nexus.request({ method: <span class="s">'nexus_connect'</span> });
+<span class="c">// { genesis, username, accounts }</span>
+
+<span class="c">// sign in with Nexus: the wallet writes the text with your site, account, network and nonce</span>
+<span class="k">const</span> signed = <span class="k">await</span> window.nexus.request({
+  method: <span class="s">'nexus_signIn'</span>, params: { nonce: <span class="s">'k3J9x2Lm'</span>, statement: <span class="s">'Log in to the shop'</span> } });
+<span class="c">// server: verifySignedText(signed, cryptoRegisterFromNode(node), 'https://shop.example')</span>
+
+<span class="c">// payment: the user picks the account and confirms with the PIN in the wallet window</span>
+<span class="k">const</span> { txid } = <span class="k">await</span> window.nexus.request({
+  method: <span class="s">'nexus_send'</span>, params: { to: <span class="s">'shop:payments'</span>, amount: 12.5, reference: <span class="s">'1001'</span> } });</pre>
+  <p>Also for sites: balances, assets, paying invoices and market orders. Sign in with Nexus needs no change to the Nexus core: the signature is checked against the public key hash in the account's crypto register, readable from any node without a login. A developer package with types and the server side check is in the repository.</p>
+  <div class="foot"><span>Nexus Wallet browser extension</span><span>8</span></div>
+</section>
+
+<!-- 9 mainnet and security -->
+<section class="page">
+  <div class="kicker">Network and safety</div>
+  <h1>Mainnet, public nodes and security</h1>
+  <h3>Why no download and no sync</h3>
+  <p>The desktop wallet runs a full Nexus core: it downloads the whole blockchain and keeps it in sync before you can use it. In light wallet mode the extension leaves that to a node on the network. It reads only what it needs (your own chain, account states, a transaction) and submits transactions it has already signed. So a node shared by many people is fine: it never sees a login.</p>
+  <h3>What mainnet use needs</h3>
+  <table>
+    <tr><th>Piece</th><th>What it is</th><th>Status</th></tr>
+    <tr><td>Public Nexus node</td><td>Any LLL-TAO node with its API reachable over https, used for reading and submitting</td><td class="todo">Needed for a public release</td></tr>
+    <tr><td>Index for incoming</td><td>Optional: an explorer backend that lists payments sent to you, so nothing older than the newest blocks is missed</td><td class="todo">Optional, prepared</td></tr>
+    <tr><td>Store signing</td><td>Chrome Web Store and Firefox Add-ons listing, so installing is one click</td><td class="todo">Open</td></tr>
+    <tr><td>Wallet</td><td>All functions above</td><td class="ok">Done, tested on testnet</td></tr>
+  </table>
+  <h3>Security</h3>
+  <ul>
+    <li>Keys are made from username, password and PIN in the browser, exactly as the Nexus core makes them, and wiped after signing.</li>
+    <li>Every transaction needs the PIN. Every site must be approved, per account, and can be removed in Settings.</li>
+    <li>Transactions are byte for byte what the Nexus core writes, checked against real mainnet transactions.</li>
+    <li>Two separate security reviews were done on the code, all findings fixed. The code is open for anyone to check.</li>
+  </ul>
+  <div class="foot"><span>Nexus Wallet browser extension</span><span>9</span></div>
+</section>
+
+</body>
+</html>
