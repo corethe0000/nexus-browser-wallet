@@ -605,7 +605,8 @@ export class LocalWallet extends Wallet {
         }
         const from = await this.accountState(step.from);
         const target = await this.call<any>('register/get/any', { address: step.to }).catch(() => null);
-        if (!target || (target.type !== 'ACCOUNT' && target.type !== 'TRUST') || String(target.token ?? '0') !== from.state.token) {
+        //a token's own register takes credits too (its base is ACCOUNT in the core, credit.cpp)
+        if (!target || !['ACCOUNT', 'TRUST', 'TOKEN'].includes(target.type) || String(target.token ?? '0') !== from.state.token) {
           throw new NexusError(-66, 'The receiving account does not hold this token');
         }
         if (String(target.owner).toLowerCase() !== step.recipient) {
