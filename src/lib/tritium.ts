@@ -826,6 +826,18 @@ export function nameContract(genesis: string, name: string, register: Uint8Array
   return createContract(namedAddress(name, namespace, addrName), nameData(global ? globalNamespace : '', name, register), owner, timestamp);
 }
 
+//OP::WRITE of a local name's address field (names/update/name), with its pre-state and the checksum after the write
+export function nameWriteContract(genesis: string, name: string, register: { created: number; modified: number; address: Uint8Array }, address: Uint8Array, timestamp: number): Uint8Array {
+  const owner = memoryOfHex(genesis);
+  const state = (modified: number, value: Uint8Array) =>
+    new Writer().u8(stateVersion).u8(registerObject).raw(owner).u64(BigInt(register.created)).u64(BigInt(modified)).vec(nameData('', name, value)).bytes();
+  const before = state(register.modified, register.address);
+  const after = state(timestamp, address);
+  const stream = new Writer().vec(enc.encode('address')).u8(cond.uint256).raw(address).bytes();
+  const reg = new Writer().u8(statePre).raw(before).u64(sk64(before)).u8(statePost).u64(sk64(after)).bytes();
+  return contract(new Writer().u8(opWrite).raw(namedAddress(name, owner, addrName)).vec(stream).bytes(), new Uint8Array(0), reg);
+}
+
 //format basic: _usertype, then the fields in name order; text fields stay changeable unless the value starts with const:
 export function assetData(fields: Record<string, string>): Uint8Array {
   const w = new Writer();
