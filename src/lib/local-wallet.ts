@@ -4,16 +4,14 @@
 //(src/lib/tritium.ts) and submitted with ledger/submit/transaction
 import { ErrorCodes, NexusError, type NodeSettings } from './node';
 import { Wallet } from './wallet';
-import { cryptoRegisterAddress, deriveKey, genesisOf } from './keys';
+import { cryptoRegisterAddress, deriveKey } from './keys';
+import { accountStateOf, accountTypes, checkCredentials, findGenesis, ProfileError, scanOwnRegisters, type OwnRegister, type RegisterScan } from './profile-chain';
 import { clearLocalKeys, loadLastSubmitted, saveLastSubmitted, saveLocalKeys, type LocalKeys } from './local-keys';
 import { defaultExpiry, expirySeconds, isExpired } from './claims';
 import { fillContracts, orderContract, orderTerms, type OrderTerms, invoiceContracts, invoiceData, invoicePayment, invoiceTerms, newInvoiceAddress, claimContract, stateAfter, transferContract, type RegisterState, accountContracts, addressOfMemory, assetContract, assetData, globalNameFee, nameContract, newAssetAddress, newTokenAddress, objectFee, tokenContract, tokenFee, feeContract, memoryOfAddress, nameFee, newAccountAddress, recoveryKey, credentialsContract, creditContract, debitContract, expiryCondition, nextHashOf, parseTx, sequenceKey, signTx, type AccountState, type CreditParams, type CryptoFields, type PrevTx } from './tritium';
 import { isAddress } from './format';
 import type { Account, Asset, Balance, Invoice, InvoiceItem, MarketOrder, Notification, SendRequest, Session, StakeInfo, Transaction } from './types';
 
-//genesis type byte of users per network (TAO/Ledger/include/enum.h GENESIS::*::USER): normal, hybrid, sister
-const mainnetUserTypes = [0xa1, 0xa7, 0xab];
-const testnetUserTypes = [0xb1, 0xb7, 0xbb];
 const nxsDecimals = 6;
 const pageSize = 100;
 //TX_FEE_INTERVAL: a transaction this soon after the previous one pays a fee, the wallet waits instead
@@ -27,20 +25,7 @@ let recentCache: { node: string; at: number; blocks: any[] } | null = null;
 const walkedBlocks = new Map<string, any>();
 const maxWalkedBlocks = 1000;
 const maxNotifications = 50;
-//a token's own register holds the undistributed supply and can be sent from
-const accountTypes = new Set(['ACCOUNT', 'TRUST', 'TOKEN']);
 const noRecovery = /^0*$/;
-
-interface OwnRegister {
-  address: string;
-  type: string;
-  name?: string;
-}
-
-interface RegisterCache {
-  scanned: number;
-  registers: OwnRegister[];
-}
 
 const notHere = (what: string) => new NexusError(ErrorCodes.NotSupported, `${what} is not available yet when signing in this browser`);
 
@@ -70,27 +55,22 @@ export class LocalWallet extends Wallet {
     return this.keys ? { genesis: this.keys.genesis, username: this.keys.username } : null;
   }
 
-  //the genesis of a username, with the network's type byte: the one whose crypto register exists
-  private async findGenesis(username: string): Promise<{ genesis: string; auth: string }> {
-    const base = (await genesisOf(username)).slice(2);
-    const info = await this.info();
-    for (const t of info.testnet ? testnetUserTypes : mainnetUserTypes) {
-      const genesis = t.toString(16) + base;
-      const reg = await this.cryptoRegister(cryptoRegisterAddress(genesis)).catch(() => null);
-      if (reg && reg.owner.toLowerCase() === genesis) {
-        return { genesis, auth: reg.auth };
-      }
+  //errors of the shared profile reading become wallet errors with the same code
+  private async profileStep<T>(f: () => Promise<T>): Promise<T> {
+    try {
+      return await f();
+    } catch (e) {
+      throw e instanceof ProfileError ? new NexusError(e.code, e.message) : e;
     }
-    throw new NexusError(-130, 'No account with this username on this network');
   }
 
-  //password and PIN are right when they make the auth key of the crypto register
-  private async checkCredentials(username: string, password: string, pin: string, auth: string): Promise<void> {
-    const k = await deriveKey(username, password, pin, 'auth');
-    k.privateKey.fill(0);
-    if (k.hash.toLowerCase() !== auth.toLowerCase()) {
-      throw new NexusError(-139, 'Username, password or PIN is not right');
-    }
+  private async findGenesis(username: string): Promise<{ genesis: string; auth: string }> {
+    const info = await this.info();
+    return this.profileStep(() => findGenesis((m, p) => this.call(m, p), username, !!info.testnet));
+  }
+
+  private checkCredentials(username: string, password: string, pin: string, auth: string): Promise<void> {
+    return this.profileStep(() => checkCredentials(username, password, pin, auth));
   }
 
   override async login(username: string, password: string, pin: string): Promise<Session & { session?: string }> {
@@ -130,32 +110,8 @@ export class LocalWallet extends Wallet {
     const k = this.need();
     const cacheKey = `localRegisters:${k.genesis}`;
     const got = await browser.storage.local.get(cacheKey);
-    const cache: RegisterCache = (got[cacheKey] as RegisterCache | undefined) ?? { scanned: 0, registers: [] };
-    let page = Math.floor(cache.scanned / pageSize);
-    let scanned = cache.scanned;
-    const registers = [...cache.registers];
-    for (;;) {
-      const list = (await this.call<Transaction[]>('ledger/list/transactions', { genesis: k.genesis, limit: pageSize, page, order: 'asc', verbose: 'summary' }).catch(() => [])) ?? [];
-      for (const tx of list) {
-        if (tx.sequence < cache.scanned) {
-          continue;
-        }
-        for (const c of tx.contracts ?? []) {
-          if (c.OP === 'CREATE' && c.address && c.type && !registers.some((r) => r.address === c.address)) {
-            registers.push({ address: c.address, type: c.type, name: c.name });
-          }
-          //a claimed register (an asset someone sent)
-          if (c.OP === 'CLAIM' && c.address && !registers.some((r) => r.address === c.address)) {
-            registers.push({ address: c.address, type: 'OBJECT' });
-          }
-        }
-        scanned = Math.max(scanned, tx.sequence + 1);
-      }
-      if (list.length < pageSize) {
-        break;
-      }
-      page += 1;
-    }
+    const cache: RegisterScan = (got[cacheKey] as RegisterScan | undefined) ?? { scanned: 0, registers: [] };
+    const { scanned, registers } = await scanOwnRegisters((m, p) => this.call(m, p), k.genesis, cache);
     if (scanned !== cache.scanned) {
       await browser.storage.local.set({ [cacheKey]: { scanned, registers } });
     }
@@ -396,15 +352,14 @@ export class LocalWallet extends Wallet {
   //--- transactions signed here ---
 
   private async accountState(address: string): Promise<{ state: AccountState; decimals: number }> {
-    const a = await this.call<any>('register/get/any', { address });
-    if (!accountTypes.has(a.type)) {
-      throw new NexusError(-65, 'Not an account');
-    }
-    const token = String(a.token ?? '0');
-    const decimals = await this.decimalsOf(token);
-    const units = (v: unknown) => BigInt(Math.round(Number(v) * 10 ** decimals));
-    const tokenInfo = a.type === 'TOKEN' ? { supply: units(a.maxsupply), decimals } : undefined;
-    return { state: { owner: a.owner, created: a.created, modified: a.modified, balance: units(a.balance), token, tokenInfo }, decimals };
+    const { state, decimals } = await this.profileStep(() =>
+      accountStateOf(
+        (m, p) => this.call(m, p),
+        address,
+        (t) => this.decimalsOf(t),
+      ),
+    );
+    return { state, decimals };
   }
 
   //newest transaction of the chain; a transaction this wallet sent must be in a block before the next one,
