@@ -1,5 +1,6 @@
 import type { SignedText } from './signin';
 import type { Balance, MarketOrder } from './types';
+import type { SwapShown, SwapStep } from './swap-step';
 
 //protocol between websites (window.nexus), the content script and the background
 
@@ -22,6 +23,7 @@ export const DappMethods = {
   CancelOrder: 'nexus_cancelOrder',
   SignIn: 'nexus_signIn',
   SignMessage: 'nexus_signMessage',
+  SwapStep: 'nexus_swapStep',
 } as const;
 
 //same numbers as EIP-1193 so web developers know them
@@ -52,7 +54,7 @@ export interface SendParams {
   reference?: string;
 }
 
-export type ApprovalKind = 'connect' | 'send' | 'sign' | 'invoice' | 'order';
+export type ApprovalKind = 'connect' | 'send' | 'sign' | 'invoice' | 'order' | 'swap';
 
 export interface ApprovalInfo {
   id: string;
@@ -65,6 +67,8 @@ export interface ApprovalInfo {
   invoice?: string;
   //market requests: what to do on which pair
   order?: OrderRequest;
+  //swap step of the Nexus DEX, with what the wallet read from the chain for it
+  swap?: { step: SwapStep; shown: SwapShown };
   //account the request was made for, the window refuses another one
   genesis?: string;
 }
@@ -198,6 +202,7 @@ export interface DappRequests {
   nexus_cancelOrder: { params: Market & { txid: string }; result: { txid: string } };
   nexus_signIn: { params: { nonce: string; statement?: string }; result: SignedText };
   nexus_signMessage: { params: { message: string }; result: SignedText };
+  nexus_swapStep: { params: SwapStep; result: { txid: string } };
 }
 
 export type DappMethod = keyof DappRequests;

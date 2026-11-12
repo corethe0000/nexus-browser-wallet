@@ -17,6 +17,7 @@ import { approvalInfo, askUser, failApproval, finishApproval, rejectApproval, wa
 import { addSite, isConnected, listSites, removeSite, sitesFor } from '../lib/sites';
 import { isAddress, isRecipient, isReference } from '../lib/format';
 import { checkMessageParams, checkSignInParams, messageText, signInText } from '../lib/signin';
+import { checkSwapStep } from '../lib/swap-step';
 import { cryptoRegisterAddress, fromHex, keyHash, signer, toHex } from '../lib/keys';
 
 async function walletFor(node: NodeSettings): Promise<Wallet> {
@@ -230,6 +231,22 @@ async function handleDapp(origin: string, method: string, params: unknown): Prom
       const [session, info] = await Promise.all([w.session(), w.info()]);
       const network = info.private ? 'private' : info.testnet ? 'testnet' : 'mainnet';
       return askUser('sign', origin, { text: text({ origin, username: session!.username, genesis: session!.genesis, network }), genesis });
+    }
+    case DappMethods.SwapStep: {
+      const step = checkSwapStep(params);
+      const node = await loadNode();
+      if (node?.mode !== 'local') {
+        throw new DappError(DappErrors.Unsupported, 'Swaps need the wallet to sign in this browser (wallet settings)');
+      }
+      const { w, genesis } = await requireSite(origin, true);
+      //checked against the chain before any window opens; a step that cannot work is refused right away
+      let shown;
+      try {
+        shown = await w.swapPreview(step);
+      } catch (e) {
+        throw new DappError(DappErrors.InvalidParams, (e as Error).message);
+      }
+      return askUser('swap', origin, { swap: { step, shown }, genesis });
     }
     default:
       throw new DappError(DappErrors.Unsupported, `Unknown method ${method}`);
@@ -614,6 +631,15 @@ async function handle(msg: Message): Promise<unknown> {
     case 'approvalReject':
       rejectApproval(msg.id);
       return null;
+    case 'approvalSwap': {
+      const info = approvalInfo(msg.id);
+      const w = await wallet();
+      const s = await w.session();
+      if (info.kind !== 'swap' || !info.swap || !s || info.genesis !== s.genesis) {
+        throw new NexusError(-43, 'This request is no longer open');
+      }
+      return { txid: await w.swapStep(info.swap.step, msg.pin) };
+    }
     case 'sites':
       return [...(await currentSites())];
     case 'cryptoRegister': {

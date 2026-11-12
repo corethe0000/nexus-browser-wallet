@@ -3,6 +3,7 @@ import { DappErrors, type DappConnectInfo, type DappMethod, type DappRequests } 
 
 export { DappErrors as NexusErrors };
 export type { DappAccount, DappAsset, DappConnectInfo, DappMethod, DappNetwork, DappRequests } from '../../src/lib/dapp';
+export type { SwapStep } from '../../src/lib/swap-step';
 export type { SignedText } from '../../src/lib/signin';
 export type { Balance, MarketOrder, OrderSide } from '../../src/lib/types';
 

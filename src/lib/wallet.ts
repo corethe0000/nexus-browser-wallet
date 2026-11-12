@@ -1,4 +1,5 @@
-import { callNode, NexusError, type NodeSettings } from './node';
+import { callNode, ErrorCodes, NexusError, type NodeSettings } from './node';
+import type { SwapShown, SwapStep } from './swap-step';
 import type { Account, Asset, Balance, Invoice, InvoiceItem, MarketOrder, NodeInfo, Notification, OrderSide, SendRequest, Session, StakeInfo, Transaction } from './types';
 
 //node error codes we react to
@@ -357,5 +358,14 @@ export class Wallet {
   async claim(txid: string, pin: string): Promise<string> {
     const r = await this.call<any>('finance/credit/account', { txid, pin });
     return r.txid;
+  }
+
+  //swap steps of the Nexus DEX: the core API has no hashlocked payment, only the mode that signs in this browser
+  async swapPreview(_step: SwapStep): Promise<SwapShown> {
+    throw new NexusError(ErrorCodes.NotSupported, 'Swaps need the wallet to sign in this browser');
+  }
+
+  async swapStep(_step: SwapStep, _pin: string): Promise<string> {
+    throw new NexusError(ErrorCodes.NotSupported, 'Swaps need the wallet to sign in this browser');
   }
 }

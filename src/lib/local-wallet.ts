@@ -4,12 +4,14 @@
 //(src/lib/tritium.ts) and submitted with ledger/submit/transaction
 import { ErrorCodes, NexusError, type NodeSettings } from './node';
 import { Wallet } from './wallet';
-import { cryptoRegisterAddress, deriveKey } from './keys';
+import { cryptoRegisterAddress, deriveKey, fromHex } from './keys';
 import { accountStateOf, accountTypes, checkCredentials, findGenesis, ProfileError, scanOwnRegisters, type OwnRegister, type RegisterScan } from './profile-chain';
 import { clearLocalKeys, loadLastSubmitted, saveLastSubmitted, saveLocalKeys, type LocalKeys } from './local-keys';
 import { defaultExpiry, expirySeconds, isExpired } from './claims';
 import { fillContracts, orderContract, orderTerms, type OrderTerms, invoiceContracts, invoiceData, invoicePayment, invoiceTerms, newInvoiceAddress, claimContract, stateAfter, transferContract, type RegisterState, accountContracts, addressOfMemory, assetContract, assetData, globalNameFee, nameContract, newAssetAddress, newTokenAddress, objectFee, tokenContract, tokenFee, feeContract, memoryOfAddress, nameFee, newAccountAddress, recoveryKey, credentialsContract, creditContract, debitContract, expiryCondition, nextHashOf, parseTx, sequenceKey, signTx, type AccountState, type CreditParams, type CryptoFields, type PrevTx } from './tritium';
-import { isAddress } from './format';
+import { formatAmount, isAddress } from './format';
+import * as htlc from './htlc';
+import type { SwapShown, SwapStep } from './swap-step';
 import type { Account, Asset, Balance, Invoice, InvoiceItem, MarketOrder, Notification, SendRequest, Session, StakeInfo, Transaction } from './types';
 
 const nxsDecimals = 6;
@@ -548,6 +550,114 @@ export class LocalWallet extends Wallet {
 
   override async claim(txid: string, pin: string): Promise<string> {
     return this.claimAll([txid], pin);
+  }
+
+  //--- swap steps for the Nexus DEX (nexus_swapStep) ---
+
+  override async swapPreview(step: SwapStep): Promise<SwapShown> {
+    return (await this.swapPlan(step)).shown;
+  }
+
+  //planned again from the chain when signing, the window only showed the preview
+  override async swapStep(step: SwapStep, pin: string): Promise<string> {
+    const plan = await this.swapPlan(step);
+    return this.signAndSubmit(pin, plan.contracts);
+  }
+
+  private async slotOf(genesis: string): Promise<htlc.SlotState | null> {
+    const r = await this.call<any>('register/get/any', { address: addressOfMemory(htlc.slotAddress(genesis)) }).catch(() => null);
+    return r ? htlc.parseSlot(r) : null;
+  }
+
+  private async lockDebit(txid: string, contract: number): Promise<{ tx: Transaction & { genesis?: string }; c: Transaction['contracts'][number]; from: string; to: string; open: bigint; decimals: number }> {
+    const tx = await this.call<Transaction & { genesis?: string }>('ledger/get/transaction', { hash: txid, verbose: 'detail' }).catch(() => null);
+    const c = tx?.contracts?.find((x) => x.id === contract);
+    const from = typeof c?.from === 'object' ? c.from?.address : c?.from;
+    const to = typeof c?.to === 'object' ? c.to?.address : c?.to;
+    if (!tx || !c || c.OP !== 'DEBIT' || !from || !to || !c.conditions) {
+      throw new NexusError(-43, 'This is not a swap lock');
+    }
+    const decimals = await this.decimalsOf(String(c.token ?? '0'));
+    const open = BigInt(Math.round((Number(c.amount ?? 0) - Number(c.claimed ?? 0)) * 10 ** decimals));
+    if (open <= 0n) {
+      throw new NexusError(-173, 'This lock was already taken');
+    }
+    return { tx, c, from, to, open, decimals };
+  }
+
+  private async swapPlan(step: SwapStep): Promise<{ shown: SwapShown; contracts: (ts: number) => Uint8Array[] }> {
+    const k = this.need();
+    const mine = new Map((await this.accounts()).map((a) => [a.address, a]));
+    const shownAmount = (v: bigint, decimals: number) => formatAmount(Number(v) / 10 ** decimals, decimals);
+    switch (step.step) {
+      case 'setup': {
+        if (await this.slotOf(k.genesis)) {
+          throw new NexusError(-97, 'Swaps are already set up for this profile');
+        }
+        const fee = await this.feeOnNetwork(htlc.slotFee);
+        const pay = await this.feePayer(fee);
+        return { shown: fee > 0n ? { fee: formatAmount(Number(fee) / 1e6) } : {}, contracts: (ts) => [...htlc.slotCreateContracts(k.genesis, ts), ...pay(ts)] };
+      }
+      case 'lock': {
+        const own = mine.get(step.from);
+        if (!own) {
+          throw new NexusError(-43, 'The lock must come from one of your accounts');
+        }
+        const from = await this.accountState(step.from);
+        const target = await this.call<any>('register/get/any', { address: step.to }).catch(() => null);
+        if (!target || (target.type !== 'ACCOUNT' && target.type !== 'TRUST') || String(target.token ?? '0') !== from.state.token) {
+          throw new NexusError(-66, 'The receiving account does not hold this token');
+        }
+        if (String(target.owner).toLowerCase() !== step.recipient) {
+          throw new NexusError(-66, 'The receiving account belongs to someone else than the recipient of the lock');
+        }
+        //no short circuit in conditions: without the recipient's slot even the refund path would fail
+        if (!(await this.slotOf(step.recipient))) {
+          throw new NexusError(-66, 'The other side has not set up swaps, the lock could not be taken back');
+        }
+        const amount = BigInt(step.amount);
+        if (amount > from.state.balance) {
+          throw new NexusError(-69, 'Insufficient funds');
+        }
+        const terms: htlc.NexusLockTerms = { recipient: step.recipient, sender: k.genesis, hashlock: fromHex(step.hashlock), deadline: step.deadline };
+        return {
+          shown: { amount: shownAmount(amount, from.decimals), ticker: own.ticker ?? (from.state.token === '0' ? 'NXS' : ''), account: own.name ?? step.from, counter: step.to, deadline: step.deadline },
+          contracts: (ts) => [htlc.lockContract({ address: step.from, state: from.state }, step.to, amount, terms, ts)],
+        };
+      }
+      case 'reveal': {
+        const slot = await this.slotOf(k.genesis);
+        if (!slot) {
+          throw new NexusError(-43, 'Swaps are not set up for this profile');
+        }
+        const secret = fromHex(step.secret);
+        return { shown: {}, contracts: (ts) => [htlc.revealContract(k.genesis, slot, secret, ts)] };
+      }
+      case 'claim': {
+        const d = await this.lockDebit(step.txid, step.contract);
+        const own = mine.get(d.to);
+        if (!own) {
+          throw new NexusError(-43, 'This lock is not for one of your accounts');
+        }
+        const to = await this.accountState(d.to);
+        return {
+          shown: { amount: shownAmount(d.open, d.decimals), ticker: own.ticker ?? d.c.ticker, account: own.name ?? d.to, counter: d.from },
+          contracts: (ts) => [htlc.claimContract(step.txid, step.contract, { address: d.to, state: to.state }, d.from, d.open, ts)],
+        };
+      }
+      case 'refund': {
+        const d = await this.lockDebit(step.txid, step.contract);
+        const own = mine.get(d.from);
+        if (d.tx.genesis?.toLowerCase() !== k.genesis.toLowerCase() || !own) {
+          throw new NexusError(-43, 'This lock is not yours');
+        }
+        const from = await this.accountState(d.from);
+        return {
+          shown: { amount: shownAmount(d.open, d.decimals), ticker: own.ticker ?? d.c.ticker, account: own.name ?? d.from },
+          contracts: (ts) => [htlc.refundContract(step.txid, step.contract, { address: d.from, state: from.state }, d.open, ts)],
+        };
+      }
+    }
   }
 
   //--- not built for this mode yet ---

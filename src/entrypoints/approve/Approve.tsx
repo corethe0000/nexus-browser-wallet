@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ask } from '../../lib/messages';
 import { defaultLang, texts, type Lang } from '../../lib/i18n';
 import { loadLang } from '../../lib/settings';
-import { formatAmount, shortHash } from '../../lib/format';
+import { formatAmount, formatTime, shortHash } from '../../lib/format';
 import { originLabel, type ApprovalInfo, type SendParams } from '../../lib/dapp';
 import type { Account, Balance, WalletStatus } from '../../lib/types';
 import { AppContext, useApp } from '../popup/context';
@@ -115,6 +115,8 @@ export function Approve() {
     );
   } else if (info.kind === 'sign') {
     body = <SignRequest info={info} />;
+  } else if (info.kind === 'swap') {
+    body = <SwapRequest info={info} />;
   } else {
     body = <SendRequest info={info} />;
   }
@@ -237,6 +239,80 @@ function SignRequest({ info }: { info: ApprovalInfo }) {
           <RejectButton disabled={busy} />
           <button className="btn primary" disabled={busy || !password || !pin}>
             {busy ? t.signing : t.sign}
+          </button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+//one Nexus step of a DEX swap: what it does in plain words, then the PIN; the background signs the step it checked,
+//this window only sends the PIN
+function SwapRequest({ info }: { info: ApprovalInfo }) {
+  const { t } = useApp();
+  const [pin, setPin] = useState('');
+  const { busy, error, run } = useAction();
+  const { step, shown } = info.swap!;
+  const text = { setup: t.swapSetupText, lock: t.swapLockText, reveal: t.swapRevealText, claim: t.swapClaimText, refund: t.swapRefundText }[step.step];
+  const note = { setup: t.swapSetupNote, lock: t.swapLockNote, reveal: t.swapRevealNote, claim: t.swapClaimNote, refund: t.swapRefundNote }[step.step];
+
+  async function approve(e: React.FormEvent) {
+    e.preventDefault();
+    await run(async () => {
+      const r = await ask('approvalSwap', { id: info.id, pin });
+      setPin('');
+      await ask('approvalDone', { id: info.id, result: { txid: r.txid } });
+    });
+  }
+
+  return (
+    <>
+      <Header title={t.swapRequestTitle} />
+      <form className="page" onSubmit={approve}>
+        <SiteBanner origin={info.origin} text={text} />
+        <dl className="review">
+          {shown.amount && (
+            <>
+              <dt>{t.amount}</dt>
+              <dd className="big">
+                {shown.amount} {shown.ticker}
+              </dd>
+            </>
+          )}
+          {shown.account && (
+            <>
+              <dt>{step.step === 'claim' ? t.to : t.from}</dt>
+              <dd className="mono break">{shown.account}</dd>
+            </>
+          )}
+          {shown.counter && (
+            <>
+              <dt>{step.step === 'claim' ? t.from : t.to}</dt>
+              <dd className="mono break">{shortHash(shown.counter, 8)}</dd>
+            </>
+          )}
+          {shown.deadline && (
+            <>
+              <dt>{t.swapDeadline}</dt>
+              <dd>{formatTime(shown.deadline)}</dd>
+            </>
+          )}
+          {shown.fee && (
+            <>
+              <dt>{t.swapFee}</dt>
+              <dd>{shown.fee} NXS</dd>
+            </>
+          )}
+        </dl>
+        <p className="small muted">{note}</p>
+        <Field label={t.confirmWithPin}>
+          <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} autoComplete="off" required autoFocus />
+        </Field>
+        <ErrorBox error={error} />
+        <div className="row">
+          <RejectButton disabled={busy} />
+          <button className="btn primary" disabled={busy || !pin}>
+            {busy ? t.swapWorking : t.swapApprove}
           </button>
         </div>
       </form>

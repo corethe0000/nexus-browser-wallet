@@ -175,6 +175,22 @@ How it works without any change to the core: every signature chain has a crypto 
 
 To check a sign-in on your server, use `verifySignedText(signed, cryptoRegisterFromNode(nodeUrl), 'https://your.site')` from the developer package (`sdk/`, `nexus-wallet-sdk/server`, see sdk/README.md; the code is `src/lib/signin.ts`). It reads the text strictly line by line (a signed message or a text made for another site never passes as your sign-in, and the wallet refuses statements that look like one of the fields), checks the signature, that the public key hashes (SK256) to the `sign` field of the account's crypto register on any node (`register/get/crypto`, no login needed) and that the register belongs to that genesis. On success it returns the fields (`signIn.nonce`, `signIn.issuedAt`, ...): your server must still check that the nonce is the one it issued. Pass `{ network: 'mainnet', maxAgeSeconds: 300 }` as fifth argument to also check the network and that `Issued At` is recent. For `nexus_signMessage` texts pass `'message'` as fourth argument. Statements and messages with control, direction or line separator characters are refused by the wallet. Accounts whose crypto register has no `sign` key cannot sign.
 
+## Atomic swaps (Nexus DEX)
+
+| Method | Needs connect | Opens a window | Result |
+|---|---|---|---|
+| `nexus_swapStep` | yes | always | `{ txid }` |
+
+Signs one Nexus step of a hashlocked atomic swap (code: `src/lib/htlc.ts`, checks: `src/lib/swap-step.ts`). Only when the wallet signs in this browser; with a core login it answers 4200. The wallet checks each step against the chain before the window opens and builds the transaction itself; the window shows what the step does in plain words and asks for the PIN. Params, by `step`:
+
+- `setup`: creates the profile's reveal slot (local name `nxdex`), once; on mainnet with the name fee from the default NXS account.
+- `lock`: `from` (own account), `to` (the other side's account, same token), `amount` (base units, text), `recipient` (genesis of the owner of `to`, who must have a reveal slot), `hashlock` (SK256 of the secret, 32 bytes hex), `deadline` (unix time, at most 7 days ahead).
+- `reveal`: `secret` (32 bytes hex), written into the own reveal slot.
+- `claim`: `txid` and `contract` of a lock to one of the user's accounts; the wallet takes the accounts and the amount from the chain.
+- `refund`: `txid` and `contract` of the user's own lock after its deadline.
+
+A step can only follow once the profile's previous transaction is in a block; until then the wallet answers with an error and the site tries again.
+
 ## Languages
 
 English, German, Spanish, Filipino, French, Croatian, Indonesian, Italian, Dutch, Polish, Portuguese and Turkish. The wallet starts in the browser's language when it has it, and Settings > Language switches.

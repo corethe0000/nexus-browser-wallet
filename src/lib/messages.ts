@@ -57,6 +57,8 @@ export interface RequestMap {
   approvalGet: { req: { id: string }; res: ApprovalInfo };
   approvalDone: { req: { id: string; result: unknown }; res: null };
   approvalReject: { req: { id: string }; res: null };
+  //signs the swap step of an open approval; the step comes from the request, not from the window
+  approvalSwap: { req: { id: string; pin: string }; res: { txid: string } };
   sites: { req: {}; res: ConnectedSite[] };
   cryptoRegister: { req: {}; res: { address: string; owner: string; sign: string; auth: string } | null };
   lock: { req: {}; res: null };

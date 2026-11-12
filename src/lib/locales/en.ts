@@ -402,6 +402,21 @@ export const en = {
   mainnet: 'Mainnet',
   testnet: 'Testnet',
   privateNet: 'Private test chain',
+  swapRequestTitle: 'Swap step',
+  swapSetupText: 'asks you to set up atomic swaps for your profile',
+  swapLockText: 'asks you to lock a payment for an atomic swap',
+  swapRevealText: 'asks you to publish the secret of a swap',
+  swapClaimText: 'asks you to collect a swap payment locked for you',
+  swapRefundText: 'asks you to take back your swap lock',
+  swapSetupNote: 'Creates a small register that holds the secret when you collect a swap. Needed once per profile.',
+  swapLockNote: 'The other side can take it only with the secret of this swap, before the deadline. From the deadline on, you can take it back.',
+  swapRevealNote: 'This lets you collect the payment locked for you. Once the secret is public, the other side can collect your payment too.',
+  swapClaimNote: 'The payment goes into your account.',
+  swapRefundNote: 'The payment comes back into your account.',
+  swapDeadline: 'Deadline',
+  swapFee: 'One-time fee',
+  swapApprove: 'Approve',
+  swapWorking: 'Signing...',
 };
 
 export type Texts = typeof en;
