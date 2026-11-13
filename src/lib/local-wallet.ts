@@ -7,6 +7,7 @@ import { Wallet } from './wallet';
 import { cryptoRegisterAddress, deriveKey, fromHex } from './keys';
 import { accountStateOf, accountTypes, checkCredentials, findGenesis, ProfileError, scanOwnRegisters, type OwnRegister, type RegisterScan } from './profile-chain';
 import { clearLocalKeys, loadLastSubmitted, saveLastSubmitted, saveLocalKeys, type LocalKeys } from './local-keys';
+import { recentBlocks } from './blocks';
 import { defaultExpiry, expirySeconds, isExpired } from './claims';
 import { fillContracts, orderContract, orderTerms, type OrderTerms, invoiceContracts, invoiceData, invoicePayment, invoiceTerms, newInvoiceAddress, claimContract, stateAfter, transferContract, type RegisterState, accountContracts, addressOfMemory, assetContract, assetData, globalNameFee, nameContract, newAssetAddress, newTokenAddress, objectFee, tokenContract, tokenFee, feeContract, memoryOfAddress, nameFee, newAccountAddress, recoveryKey, credentialsContract, creditContract, debitContract, expiryCondition, nextHashOf, parseTx, sequenceKey, signTx, type AccountState, type CreditParams, type CryptoFields, type PrevTx } from './tritium';
 import { formatAmount, isAddress } from './format';
@@ -18,14 +19,6 @@ const nxsDecimals = 6;
 const pageSize = 100;
 //TX_FEE_INTERVAL: a transaction this soon after the previous one pays a fee, the wallet waits instead
 const feeIntervalSeconds = 10;
-//without an index, payments to claim are looked for in this many newest blocks
-const scanBlocks = 300;
-//the newest blocks are read once for the payments and the registers of one refresh
-const blockCacheMs = 15000;
-let recentCache: { node: string; at: number; blocks: any[] } | null = null;
-//blocks read one by one along previousblockhash, by node and hash; they do not change
-const walkedBlocks = new Map<string, any>();
-const maxWalkedBlocks = 1000;
 const maxNotifications = 50;
 const noRecovery = /^0*$/;
 
@@ -236,43 +229,9 @@ export class LocalWallet extends Wallet {
     return out;
   }
 
-  //the newest scanBlocks blocks, newest first; a node started without -indexheight ignores page (every
-  //page is the newest one), older blocks then come one by one along previousblockhash
-  private async recentBlocks(): Promise<any[]> {
-    if (recentCache?.node === this.node.url && Date.now() - recentCache.at < blockCacheMs) {
-      return recentCache.blocks;
-    }
-    const out: any[] = [];
-    const heights = new Set<number>();
-    for (let page = 0; out.length < scanBlocks; page++) {
-      const blocks = (await this.call<any[]>('ledger/list/blocks', { limit: pageSize, page, verbose: 'detail' }).catch(() => [])) ?? [];
-      const fresh = blocks.filter((b) => !heights.has(b.height));
-      for (const b of fresh) {
-        heights.add(b.height);
-        out.push(b);
-      }
-      if (blocks.length < pageSize) {
-        break;
-      }
-      if (fresh.length === 0) {
-        let b = out[out.length - 1];
-        while (out.length < scanBlocks && b?.previousblockhash && b.height > 1) {
-          const key = `${this.node.url}|${b.previousblockhash}`;
-          b = walkedBlocks.get(key) ?? (await this.call<any>('ledger/get/block', { hash: b.previousblockhash, verbose: 'detail' }).catch(() => null));
-          if (!b) {
-            break;
-          }
-          walkedBlocks.set(key, b);
-          out.push(b);
-        }
-        break;
-      }
-    }
-    while (walkedBlocks.size > maxWalkedBlocks) {
-      walkedBlocks.delete(walkedBlocks.keys().next().value!);
-    }
-    recentCache = { node: this.node.url, at: Date.now(), blocks: out };
-    return out;
+  //the newest blocks (lib/blocks.ts), where payments to claim are looked for without an index
+  private recentBlocks(): Promise<any[]> {
+    return recentBlocks((m, p) => this.call(m, p), this.node.url);
   }
 
   override async notifications(): Promise<Notification[]> {

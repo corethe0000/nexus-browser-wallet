@@ -1,6 +1,7 @@
 import { callNode, ErrorCodes, NexusError, type NodeSettings } from './node';
+import { toOrder } from './orders';
 import type { SwapShown, SwapStep } from './swap-step';
-import type { Account, Asset, Balance, Invoice, InvoiceItem, MarketOrder, NodeInfo, Notification, OrderSide, SendRequest, Session, StakeInfo, Transaction } from './types';
+import type { Account, Asset, Balance, Invoice, InvoiceItem, MarketOrder, NodeInfo, Notification, SendRequest, Session, StakeInfo, Transaction } from './types';
 
 //node error codes we react to
 const sessionNotFound = -11;
@@ -10,20 +11,6 @@ const trustNotFound = -70;
 const sigchainNotSynced = -23;
 const invoiceTransferNotFound = -247;
 const invoiceSearchPages = 5;
-
-//market answers give NXS in base units (1e6) and tokens in whole units (seen on mainnet by the explorer work)
-const nxsBaseUnits = 1000000;
-
-function side(c: any): OrderSide {
-  const token = String(c?.token ?? '0');
-  const raw = Number(c?.amount ?? 0);
-  return { token, ticker: c?.ticker ?? (token === '0' ? 'NXS' : undefined), amount: token === '0' ? raw / nxsBaseUnits : raw };
-}
-
-//give = what the order's owner pays, want = what the owner gets back
-function toOrder(o: any): MarketOrder {
-  return { txid: o.txid, type: o.type, market: o.market, owner: o.owner, timestamp: o.timestamp, give: side(o.contract), want: side(o.order) };
-}
 
 //invoice registers keep their fields under json
 function toInvoice(r: any): Invoice {
