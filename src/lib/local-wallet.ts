@@ -20,6 +20,9 @@ const pageSize = 100;
 //TX_FEE_INTERVAL: a transaction this soon after the previous one pays a fee, the wallet waits instead
 const feeIntervalSeconds = 10;
 const maxNotifications = 50;
+//a reveal must leave this long before the lock's deadline (reveal and credit in blocks, ~50 s each on mainnet)
+const revealMarginMainnet = 600;
+const revealMargin = 60;
 const noRecovery = /^0*$/;
 
 const notHere = (what: string) => new NexusError(ErrorCodes.NotSupported, `${what} is not available yet when signing in this browser`);
@@ -544,6 +547,31 @@ export class LocalWallet extends Wallet {
     return { tx, c, from, to, open, decimals };
   }
 
+  //the secret goes public with the reveal; it is safe only for a lock to this profile with the same hash that can
+  //still be collected after the reveal and the credit are both in a block. Too late, the other side could take back
+  //its lock and still use the secret against ours. Returns the lock's deadline
+  private async revealableUntil(txid: string, contract: number, d: { tx: { genesis?: string }; c: { conditions?: unknown } }, secret: Uint8Array): Promise<number> {
+    const deadline = Number(/ledger\.timestamp < (\d+)/.exec(String(d.c.conditions ?? ''))?.[1]);
+    const raw = await this.call<any>('ledger/get/transaction', { hash: txid, format: 'raw' }).catch(() => null);
+    const bytes = raw?.data ? parseTx(raw.data).contractBytes[contract] : undefined;
+    if (!Number.isSafeInteger(deadline) || !bytes || !d.tx.genesis) {
+      throw new NexusError(-43, 'This is not a swap lock');
+    }
+    const expected = htlc.lockCondition({ recipient: this.need().genesis, sender: d.tx.genesis, hashlock: htlc.hashOf(secret), deadline });
+    const actual = htlc.conditionOf(bytes);
+    if (actual.length !== expected.length || actual.some((b, i) => b !== expected[i])) {
+      throw new NexusError(-43, 'This lock is not for this secret or not for your profile');
+    }
+    //the chain's time, or the clock less 2 minutes when the newest block is old (blocks come when they come)
+    const tip = Number((await this.call<any>('ledger/get/info').catch(() => null))?.timestamp ?? 0);
+    const now = Math.max(tip, Math.floor(Date.now() / 1000) - 120);
+    const margin = (await this.feeOnNetwork(1n)) > 0n ? revealMarginMainnet : revealMargin;
+    if (now + margin >= deadline) {
+      throw new NexusError(-43, 'Too close to the deadline: publishing the secret now could lose you both sides of the swap');
+    }
+    return deadline;
+  }
+
   private async swapPlan(step: SwapStep): Promise<{ shown: SwapShown; contracts: (ts: number) => Uint8Array[] }> {
     const k = this.need();
     const mine = new Map((await this.accounts()).map((a) => [a.address, a]));
@@ -591,7 +619,16 @@ export class LocalWallet extends Wallet {
           throw new NexusError(-43, 'Swaps are not set up for this profile');
         }
         const secret = fromHex(step.secret);
-        return { shown: {}, contracts: (ts) => [htlc.revealContract(k.genesis, slot, secret, ts)] };
+        const d = await this.lockDebit(step.txid, step.contract);
+        const own = mine.get(d.to);
+        if (!own) {
+          throw new NexusError(-43, 'This lock is not for one of your accounts');
+        }
+        const deadline = await this.revealableUntil(step.txid, step.contract, d, secret);
+        return {
+          shown: { amount: shownAmount(d.open, d.decimals), ticker: own.ticker ?? d.c.ticker, account: own.name ?? d.to, counter: d.from, deadline },
+          contracts: (ts) => [htlc.revealContract(k.genesis, slot, secret, ts)],
+        };
       }
       case 'claim': {
         const d = await this.lockDebit(step.txid, step.contract);

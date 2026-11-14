@@ -185,7 +185,7 @@ Signs one Nexus step of a hashlocked atomic swap (code: `src/lib/htlc.ts`, check
 
 - `setup`: creates the profile's reveal slot (local name `nxdex`), once; on mainnet with the name fee from the default NXS account.
 - `lock`: `from` (own account), `to` (the other side's account, same token), `amount` (base units, text), `recipient` (genesis of the owner of `to`, who must have a reveal slot), `hashlock` (SK256 of the secret, 32 bytes hex), `deadline` (unix time, at most 7 days ahead).
-- `reveal`: `secret` (32 bytes hex), written into the own reveal slot.
+- `reveal`: `secret` (32 bytes hex), written into the own reveal slot, plus `txid` and `contract` of the lock to the user it is for. The wallet refuses unless that lock is open, pays one of the user's accounts, was made by its sender with this secret's hash, and its deadline is at least 10 minutes away on mainnet (1 minute on other networks): a secret published later could cost the user both sides of the swap.
 - `claim`: `txid` and `contract` of a lock to one of the user's accounts; the wallet takes the accounts and the amount from the chain.
 - `refund`: `txid` and `contract` of the user's own lock after its deadline.
 

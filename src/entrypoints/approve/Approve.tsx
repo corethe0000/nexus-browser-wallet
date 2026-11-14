@@ -281,13 +281,13 @@ function SwapRequest({ info }: { info: ApprovalInfo }) {
           )}
           {shown.account && (
             <>
-              <dt>{step.step === 'claim' ? t.to : t.from}</dt>
+              <dt>{step.step === 'claim' || step.step === 'reveal' ? t.to : t.from}</dt>
               <dd className="mono break">{shown.account}</dd>
             </>
           )}
           {shown.counter && (
             <>
-              <dt>{step.step === 'claim' ? t.from : t.to}</dt>
+              <dt>{step.step === 'claim' || step.step === 'reveal' ? t.from : t.to}</dt>
               <dd className="mono break">{shortHash(shown.counter, 8)}</dd>
             </>
           )}

@@ -132,6 +132,26 @@ export function revealContract(genesis: string, slot: SlotState, secret: Uint8Ar
   return nameWriteContract(genesis, slotName, { created: slot.created, modified: slot.modified, address: slot.value }, secret, timestamp);
 }
 
+//the condition of one serialized contract (op, condition and register, each with its compact length)
+export function conditionOf(contract: Uint8Array): Uint8Array {
+  let p = 0;
+  const vec = () => {
+    const first = contract[p++]!;
+    let n = first;
+    if (first === 253) {
+      n = contract[p]! | (contract[p + 1]! << 8);
+      p += 2;
+    } else if (first > 253) {
+      throw new Error('contract too big');
+    }
+    const out = contract.subarray(p, p + n);
+    p += n;
+    return out;
+  };
+  vec();
+  return vec();
+}
+
 //the claim, once the slot holds the secret: CREDIT of the lock into the recipient's account
 export function claimContract(lockTxid: string, contract: number, to: { address: string; state: AccountState }, fromAccount: string, amount: bigint, timestamp: number): Uint8Array {
   return creditContract({ debitTxid: lockTxid, contract, to, from: fromAccount, amount }, timestamp);

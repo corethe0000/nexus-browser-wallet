@@ -26,7 +26,13 @@ describe('checkSwapStep', () => {
   it('refuses bad accounts and hex', () => {
     expect(() => checkSwapStep({ ...lock, to: 'bob' }, now)).toThrow(/addresses/);
     expect(() => checkSwapStep({ ...lock, hashlock: 'ab' }, now)).toThrow(/hashlock/);
-    expect(() => checkSwapStep({ step: 'reveal', secret: 'zz'.repeat(32) }, now)).toThrow(/secret/);
+    expect(() => checkSwapStep({ step: 'reveal', secret: 'zz'.repeat(32), txid: 'ef'.repeat(64), contract: 0 }, now)).toThrow(/secret/);
+  });
+
+  it('a reveal names the lock it is for', () => {
+    const txid = 'ef'.repeat(64);
+    expect(checkSwapStep({ step: 'reveal', secret: h, txid, contract: 2 }, now)).toEqual({ step: 'reveal', secret: h, txid, contract: 2 });
+    expect(() => checkSwapStep({ step: 'reveal', secret: h }, now)).toThrow(/txid/);
   });
 
   it('takes claim and refund by txid and contract', () => {

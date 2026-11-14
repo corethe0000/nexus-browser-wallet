@@ -10,8 +10,8 @@ export type SwapStep =
   //lock: a payment from an own account that the recipient can take with the secret before the deadline,
   //and the sender can take back from the deadline on
   | { step: 'lock'; from: string; to: string; amount: string; recipient: string; hashlock: string; deadline: number }
-  //reveal: write the secret into the own reveal slot, so a lock to us can be taken
-  | { step: 'reveal'; secret: string }
+  //reveal: write the secret into the own reveal slot, so the lock to us (txid, contract) can be taken
+  | { step: 'reveal'; secret: string; txid: string; contract: number }
   //claim: take a lock made to an own account; refund: take back an own lock after its deadline
   | { step: 'claim'; txid: string; contract: number }
   | { step: 'refund'; txid: string; contract: number };
@@ -77,7 +77,7 @@ export function checkSwapStep(raw: unknown, now = Math.floor(Date.now() / 1000))
       return { step: 'lock', from, to, amount, recipient: hexParam(p.recipient, 'recipient'), hashlock: hexParam(p.hashlock, 'hashlock'), deadline };
     }
     case 'reveal':
-      return { step: 'reveal', secret: hexParam(p.secret, 'secret') };
+      return { step: 'reveal', secret: hexParam(p.secret, 'secret'), ...contractParam(p) };
     case 'claim':
     case 'refund':
       return { step: p.step, ...contractParam(p) };
