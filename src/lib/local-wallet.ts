@@ -23,6 +23,10 @@ const maxNotifications = 50;
 //a reveal must leave this long before the lock's deadline (reveal and credit in blocks, ~50 s each on mainnet)
 const revealMarginMainnet = 600;
 const revealMargin = 60;
+//own transactions looked through for a lock already sent
+const recentLockScan = 10;
+
+const sameBytes = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((x, i) => x === b[i]);
 const noRecovery = /^0*$/;
 
 const notHere = (what: string) => new NexusError(ErrorCodes.NotSupported, `${what} is not available yet when signing in this browser`);
@@ -572,6 +576,23 @@ export class LocalWallet extends Wallet {
     return deadline;
   }
 
+  //the txid of one of the profile's last transactions that holds a lock with exactly this condition, else null
+  private async recentLock(genesis: string, condition: Uint8Array): Promise<string | null> {
+    const list = (await this.call<{ txid: string }[]>('ledger/list/transactions', { genesis, limit: recentLockScan, order: 'desc' }).catch(() => null)) ?? [];
+    for (const t of list) {
+      const raw = await this.call<any>('ledger/get/transaction', { hash: t.txid, format: 'raw' }).catch(() => null);
+      try {
+        const contracts = raw?.data ? parseTx(raw.data).contractBytes : [];
+        if (contracts.some((c) => sameBytes(htlc.conditionOf(c), condition))) {
+          return t.txid;
+        }
+      } catch {
+        //a transaction this check cannot read holds no lock of ours
+      }
+    }
+    return null;
+  }
+
   private async swapPlan(step: SwapStep): Promise<{ shown: SwapShown; contracts: (ts: number) => Uint8Array[] }> {
     const k = this.need();
     const mine = new Map((await this.accounts()).map((a) => [a.address, a]));
@@ -608,6 +629,11 @@ export class LocalWallet extends Wallet {
           throw new NexusError(-69, 'Insufficient funds');
         }
         const terms: htlc.NexusLockTerms = { recipient: step.recipient, sender: k.genesis, hashlock: fromHex(step.hashlock), deadline: step.deadline };
+        //a site reloaded while this window was open asks again: the same lock twice would lock the amount twice
+        const sent = await this.recentLock(k.genesis, htlc.lockCondition(terms));
+        if (sent) {
+          throw new NexusError(-97, `This swap is already locked (${sent.slice(0, 16)}...)`);
+        }
         return {
           shown: { amount: shownAmount(amount, from.decimals), ticker: own.ticker ?? (from.state.token === '0' ? 'NXS' : ''), account: own.name ?? step.from, counter: step.to, deadline: step.deadline },
           contracts: (ts) => [htlc.lockContract({ address: step.from, state: from.state }, step.to, amount, terms, ts)],
