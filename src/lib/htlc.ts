@@ -12,7 +12,7 @@
 //  itself and only have to be >= the previous one of its sigchain, so a claimer could backdate past any deadline.
 import { creditContract, debitContract, feeContract, memoryOfAddress, memoryOfHex, nameContract, nameFee, namedAddress, nameWriteContract, sk256, type AccountState } from './tritium';
 
-const c = { u64: 0x73, u256: 0x74, eq: 0x80, lt: 0x81, gte: 0x86, and: 0xa0, or: 0xa1, group: 0xa2, ungroup: 0xa3, callerGenesis: 0xc0, regValue: 0xb5, ledgerTs: 0xd2, sk256: 0xe0 };
+const c = { u64: 0x73, u256: 0x74, eq: 0x80, lt: 0x81, gte: 0x86, and: 0xa0, or: 0xa1, group: 0xa2, ungroup: 0xa3, callerGenesis: 0xc0, regOwner: 0xb2, regValue: 0xb5, ledgerTs: 0xd2, sk256: 0xe0 };
 const addrName = 0xd9;
 const slotField = 'address';
 
@@ -63,7 +63,9 @@ export function parseSlot(r: { created: number; modified: number; register?: unk
   return { created: r.created, modified: r.modified, value };
 }
 
-//(recipient AND SK256(slot.address) == H AND ledger.timestamp < D) OR (sender AND ledger.timestamp >= D)
+//(recipient AND slot.owner == recipient AND SK256(slot.address) == H AND ledger.timestamp < D) OR (sender AND ledger.timestamp >= D)
+//A name can be transferred: without the owner check the recipient could hand the slot to another profile, write the
+//secret from there and claim, and the other side would look for it in the wrong sigchain
 export function lockCondition(t: NexusLockTerms): Uint8Array {
   const field = new TextEncoder().encode(slotField);
   const out: number[] = [];
@@ -88,6 +90,13 @@ export function lockCondition(t: NexusLockTerms): Uint8Array {
   };
   u8(c.group);
   genesisIs(t.recipient);
+  u8(c.and);
+  u8(c.u256);
+  raw(slotAddress(t.recipient));
+  u8(c.regOwner);
+  u8(c.eq);
+  u8(c.u256);
+  raw(memoryOfHex(t.recipient));
   u8(c.and);
   u8(c.u256);
   raw(slotAddress(t.recipient));

@@ -827,7 +827,8 @@ export function nameContract(genesis: string, name: string, register: Uint8Array
 }
 
 //OP::WRITE of a local name's address field (names/update/name), with its pre-state and the checksum after the write
-export function nameWriteContract(genesis: string, name: string, register: { created: number; modified: number; address: Uint8Array }, address: Uint8Array, timestamp: number): Uint8Array {
+//`creator`: whose namespace the name is in, when another profile holds it now
+export function nameWriteContract(genesis: string, name: string, register: { created: number; modified: number; address: Uint8Array }, address: Uint8Array, timestamp: number, creator = genesis): Uint8Array {
   const owner = memoryOfHex(genesis);
   const state = (modified: number, value: Uint8Array) =>
     new Writer().u8(stateVersion).u8(registerObject).raw(owner).u64(BigInt(register.created)).u64(BigInt(modified)).vec(nameData('', name, value)).bytes();
@@ -835,7 +836,7 @@ export function nameWriteContract(genesis: string, name: string, register: { cre
   const after = state(timestamp, address);
   const stream = new Writer().vec(enc.encode('address')).u8(cond.uint256).raw(address).bytes();
   const reg = new Writer().u8(statePre).raw(before).u64(sk64(before)).u8(statePost).u64(sk64(after)).bytes();
-  return contract(new Writer().u8(opWrite).raw(namedAddress(name, owner, addrName)).vec(stream).bytes(), new Uint8Array(0), reg);
+  return contract(new Writer().u8(opWrite).raw(namedAddress(name, memoryOfHex(creator), addrName)).vec(stream).bytes(), new Uint8Array(0), reg);
 }
 
 //format basic: _usertype, then the fields in name order; text fields stay changeable unless the value starts with const:
@@ -870,6 +871,7 @@ export function rawCreateContract(genesis: string, address: Uint8Array, data: Ui
 
 //TRANSFER::CLAIM: the receiver has to claim it (FORCE would hand it over at once)
 const transferClaim = 0xfa;
+const transferForce = 0xfb;
 
 //a whole register state as serialized in a contract: version, type, owner, created, modified, data
 export interface RegisterState {
@@ -953,11 +955,19 @@ function registerContract(op: Uint8Array, condition: Uint8Array, before: Registe
 }
 
 //to another profile, kept by the system until claimed; the sender's genesis with type 0x00 is the owner meanwhile
-export function transferContract(genesis: string, address: Uint8Array, recipient: string, state: RegisterState, condition: Uint8Array, timestamp: number): Uint8Array {
-  const op = new Writer().u8(opTransfer).raw(address).raw(memoryOfHex(recipient)).u8(transferClaim).bytes();
-  const owner = memoryOfHex(genesis);
-  owner[31] = 0x00;
+//force: straight to the recipient, no claim needed
+export function transferContract(genesis: string, address: Uint8Array, recipient: string, state: RegisterState, condition: Uint8Array, timestamp: number, force = false): Uint8Array {
+  const op = new Writer().u8(opTransfer).raw(address).raw(memoryOfHex(recipient)).u8(force ? transferForce : transferClaim).bytes();
+  const owner = memoryOfHex(force ? recipient : genesis);
+  if (!force) {
+    owner[31] = 0x00;
+  }
   return registerContract(op, condition, state, { ...state, owner, modified: BigInt(timestamp) });
+}
+
+//a local name's register state (the reveal slot of the Nexus DEX) while `owner` holds it
+export function nameState(owner: string, name: string, register: { created: number; modified: number; address: Uint8Array }): RegisterState {
+  return { version: stateVersion, type: registerObject, owner: memoryOfHex(owner), created: BigInt(register.created), modified: BigInt(register.modified), data: nameData('', name, register.address) };
 }
 
 //claim of a register sent to this profile: transfer txid, its contract number, the register
