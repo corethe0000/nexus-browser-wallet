@@ -91,7 +91,7 @@
     <img class="mid" src="shots/10-home.png" alt="">
     <img src="shots/21-site-sign-in.png" alt="">
   </div>
-  <div class="meta">Version 0.1.0 &middot; November 2026 &middot; preview, tested on the Nexus test network</div>
+  <div class="meta">Version 0.2.0 &middot; November 2026 &middot; preview, tested on the Nexus test network</div>
 </section>
 
 <!-- 2 what it is -->
@@ -148,7 +148,7 @@
 
   <h3>Chrome, Edge, Brave, Opera</h3>
   <ol class="steps">
-    <li>Download <code>nexus-wallet-extension-0.1.0-chrome.zip</code> from the release page and unzip it into a folder you keep (the browser loads it from there).</li>
+    <li>Download <code>nexus-wallet-extension-0.2.0-chrome.zip</code> from the release page and unzip it into a folder you keep (the browser loads it from there).</li>
     <li>Open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>) and switch on <b>Developer mode</b>.</li>
     <li>Click <b>Load unpacked</b> and choose the unzipped folder. The Nexus icon appears in the toolbar (pin it from the puzzle menu if it does not).</li>
   </ol>
@@ -261,6 +261,7 @@
 <span class="k">const</span> { txid } = <span class="k">await</span> window.nexus.request({
   method: <span class="s">'nexus_send'</span>, params: { to: <span class="s">'shop:payments'</span>, amount: 12.5, reference: <span class="s">'1001'</span> } });</pre>
   <p>Also for sites: balances, assets, paying invoices and market orders. Sign in with Nexus needs no change to the Nexus core: the signature is checked against the public key hash in the account's crypto register, readable from any node without a login. A developer package with types and the server side check is in the repository.</p>
+  <p>Since 0.2.0 the wallet also signs the Nexus side of atomic swaps for the Nexus DEX (<code>nexus_swapStep</code>): locking coins for a swap, publishing the swap secret and collecting. Each step opens a window in plain words with the amount, the accounts and the deadline, and the wallet checks the lock before it reveals the secret.</p>
   <div class="foot"><span>Nexus Wallet browser extension</span><span>8</span></div>
 </section>
 
