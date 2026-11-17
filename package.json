@@ -3,7 +3,7 @@
   "description": "Browser wallet for the Nexus blockchain, works with the core of the Nexus desktop wallet",
   "private": true,
   "license": "MIT",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",

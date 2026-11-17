@@ -64,11 +64,12 @@ async function login(page, user, pass, pin) {
 {
   const { ctx, page } = await open();
   await shot(page, '01-setup');
-  await page.getByLabel('Core address').fill('http://node.example.org:8080');
-  await page.getByLabel('API user').fill('');
-  await page.getByText('Sign in this browser (no login on the node)').click();
+  //a suggested public node: sign in this browser is ticked and locked for it
+  await page.locator('.card li', { hasText: 'node1.nexus.io' }).getByRole('button', { name: 'Use' }).click();
   await shot(page, '02-setup-public-node');
+  //the screens after it come from the private test chain
   await page.getByLabel('Core address').fill(nodeUrl);
+  await page.getByLabel('Sign in this browser (no login on the node)').check();
   await page.getByRole('button', { name: 'Connect' }).click();
   await page.locator('input[autocomplete=username]').waitFor({ timeout: 30000 });
   await shot(page, '03-login');

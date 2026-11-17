@@ -91,7 +91,7 @@
     <img class="mid" src="shots/10-home.png" alt="">
     <img src="shots/21-site-sign-in.png" alt="">
   </div>
-  <div class="meta">Version 0.2.0 &middot; November 2026 &middot; preview, tested on the Nexus test network</div>
+  <div class="meta">Version 0.3.0 &middot; November 2026 &middot; preview, tested on the Nexus test network</div>
 </section>
 
 <!-- 2 what it is -->
@@ -148,7 +148,7 @@
 
   <h3>Chrome, Edge, Brave, Opera</h3>
   <ol class="steps">
-    <li>Download <code>nexus-wallet-extension-0.2.0-chrome.zip</code> from the release page and unzip it into a folder you keep (the browser loads it from there).</li>
+    <li>Download <code>nexus-wallet-extension-0.3.0-chrome.zip</code> from the release page and unzip it into a folder you keep (the browser loads it from there).</li>
     <li>Open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>) and switch on <b>Developer mode</b>.</li>
     <li>Click <b>Load unpacked</b> and choose the unzipped folder. The Nexus icon appears in the toolbar (pin it from the puzzle menu if it does not).</li>
   </ol>
@@ -158,7 +158,7 @@
   </div>
 
   <h3>Firefox</h3>
-  <p>Open <code>about:debugging</code>, This Firefox, <b>Load Temporary Add-on</b> and pick <code>manifest.json</code> in the unzipped <code>nexus-wallet-extension-0.1.0-firefox.zip</code>. Firefox removes a temporary add-on when it closes, so for daily use Firefox needs the signed version from Firefox Add-ons (planned).</p>
+  <p>Open <code>about:debugging</code>, This Firefox, <b>Load Temporary Add-on</b> and pick <code>manifest.json</code> in the unzipped <code>nexus-wallet-extension-0.3.0-firefox.zip</code>. Firefox removes a temporary add-on when it closes, so for daily use Firefox needs the signed version from Firefox Add-ons (planned).</p>
 
   <div class="note warn">This preview is not signed by a store yet. Install it only from the official release page, and check that the folder you load is the one you unzipped.</div>
   <div class="foot"><span>Nexus Wallet browser extension</span><span>3</span></div>
@@ -171,13 +171,13 @@
   <p class="lead">Without a desktop wallet: tick <b>Sign in this browser</b>, connect to a Nexus node, create the account. That is all.</p>
 
   <div class="row">
-    <figure><img class="shot w45" src="shots/02-setup-public-node.png"><figcaption>Connect to a node, no login on it</figcaption></figure>
+    <figure><img class="shot w45" src="shots/02-setup-public-node.png"><figcaption>A suggested node, no login on it</figcaption></figure>
     <figure><img class="shot w45" src="shots/04-create-account.png"><figcaption>Username, password and PIN</figcaption></figure>
     <figure><img class="shot w45" src="shots/05-account-created.png"><figcaption>Made and sent to the network</figcaption></figure>
   </div>
 
   <ol class="steps" style="margin-top:5mm">
-    <li><b>Node address.</b> Any Nexus node with its API open works, because this mode never logs in on the node. A public node of the Nexus network is enough, nothing is downloaded or synced on your computer.</li>
+    <li><b>Node address.</b> Press <b>Use</b> next to a suggested node (node1.nexus.io or node3.nexus.io, public nodes of the Nexus network), or type any Nexus node with its API open. This mode never logs in on the node, so nothing is downloaded or synced on your computer. A node on another computer without an API login is always used this way.</li>
     <li><b>Create a new account.</b> Username (at least 2 characters), password (at least 8) and PIN (at least 4, asked for every transaction). The extension builds your signature chain, with its default account, trust account and keys, and signs it in the browser.</li>
     <li><b>Wait for one block.</b> On mainnet the first transaction carries a small proof of work, one to three minutes with the window open. After the next block you log in with the same username, password and PIN.</li>
   </ol>
@@ -274,7 +274,7 @@
   <h3>What mainnet use needs</h3>
   <table>
     <tr><th>Piece</th><th>What it is</th><th>Status</th></tr>
-    <tr><td>Public Nexus node</td><td>Any LLL-TAO node with its API reachable over https, used for reading and submitting</td><td class="todo">Needed for a public release</td></tr>
+    <tr><td>Public Nexus node</td><td>Any LLL-TAO node with its API reachable, used for reading and submitting. node1.nexus.io and node3.nexus.io answer today and are offered on the setup page</td><td class="ok">Works today; long-term use for the Nexus team to confirm</td></tr>
     <tr><td>Index for incoming</td><td>Optional: an explorer backend that lists payments sent to you, so nothing older than the newest blocks is missed</td><td class="todo">Optional, prepared</td></tr>
     <tr><td>Store signing</td><td>Chrome Web Store and Firefox Add-ons listing, so installing is one click</td><td class="todo">Open</td></tr>
     <tr><td>Wallet</td><td>All functions above</td><td class="ok">Done, tested on testnet</td></tr>
@@ -282,6 +282,7 @@
   <h3>Security</h3>
   <ul>
     <li>Keys are made from username, password and PIN in the browser, exactly as the Nexus core makes them, and wiped after signing.</li>
+    <li>A node on another computer without an API login is always used with sign in this browser, so it can never receive your username, password or PIN. On a remote node with an API login the login screen warns and offers to switch with one click.</li>
     <li>Every transaction needs the PIN. Every site must be approved, per account, and can be removed in Settings.</li>
     <li>Transactions are byte for byte what the Nexus core writes, checked against real mainnet transactions.</li>
     <li>Two separate security reviews were done on the code, all findings fixed. The code is open for anyone to check.</li>
