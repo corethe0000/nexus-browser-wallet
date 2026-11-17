@@ -368,6 +368,8 @@ export const de: Texts = {
   suggestDesktop: 'Desktop-Wallet auf diesem Computer: API-Benutzer apiserver, API-Passwort aus nexus.conf',
   suggestPublic: 'Öffentlicher Nexus-Node: ohne API-Anmeldung, nur mit In diesem Browser signieren',
   apiLoginLocal: 'Für einen öffentlichen Node API-Benutzer und API-Passwort leer lassen.',
+  signHereInstead: 'Stattdessen in diesem Browser signieren',
+  localModeForced: 'Ein Node auf einem anderen Computer ohne API-Anmeldung wird immer mit In diesem Browser signieren genutzt: Er bekommt nie Benutzername, Passwort oder PIN.',
   localLoginNote: 'Signieren in diesem Browser: Ein Profil, das hier, in der Desktop-Wallet oder auf einem beliebigen Node erstellt wurde, funktioniert.',
   localCreateNote: 'Das Profil wird in dieser Erweiterung erstellt, der Node erhält nur die fertige Transaktion. Im Mainnet verlangt das Netzwerk zuerst einen kleinen Proof of Work: Lassen Sie dieses Fenster offen, es dauert ein bis drei Minuten.',
   localCreateWorking: 'Berechne Proof of Work... {n} Versuche',

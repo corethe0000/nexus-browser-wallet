@@ -60,6 +60,8 @@ check('node1 fills the address', (await inputs().nth(0).inputValue()) === 'http:
 check('node1 clears the API user', (await inputs().nth(1).inputValue()) === '');
 check('node1 turns on sign in this browser', await page.getByLabel('Sign in this browser (no login on the node)').isChecked());
 check('public hint under the password', await page.getByText('Leave API user and password empty for a public node.').isVisible());
+check('sign in this browser cannot be turned off for node1', await page.getByLabel('Sign in this browser (no login on the node)').isDisabled());
+check('says why', await page.getByText('without an API login is always used with Sign in this browser', { exact: false }).isVisible());
 
 await row('127.0.0.1:8080').getByRole('button', { name: 'Use' }).click();
 check('desktop fills the address', (await inputs().nth(0).inputValue()) === 'http://127.0.0.1:8080');
@@ -77,6 +79,30 @@ if (process.env.CONNECT === '1') {
   check('node1 in sign in this browser mode opens the login', ok);
   check('no "operator sees your login" warning when signing in this browser', !(await page.getByText('Its operator sees your username', { exact: false }).isVisible()));
   await page.screenshot({ path: `${shots}/node1-login.png`, fullPage: true });
+
+  //a wallet that saved node1 for a core login before this rule: it now signs in this browser too
+  await sw.evaluate(() => chrome.storage.local.set({ node: { url: 'http://node1.nexus.io:8080', user: '', password: '' } }));
+  await page.goto(url);
+  await page.getByLabel('Username').waitFor({ timeout: 30000 });
+  check('old core-login node1 setting signs in this browser', !(await page.getByText('Its operator sees your username', { exact: false }).isVisible()) && (await page.getByText('Signing in this browser', { exact: false }).isVisible()));
+}
+
+//a remote node with its own API login keeps the core login, with a warning and a switch
+//env REMOTE_URL, REMOTE_USER, REMOTE_PASS
+if (process.env.REMOTE_URL) {
+  const remote = { url: process.env.REMOTE_URL, user: process.env.REMOTE_USER, password: process.env.REMOTE_PASS };
+  await sw.evaluate((n) => chrome.storage.local.set({ node: n }), remote);
+  await page.goto(url);
+  await page.getByLabel('Username').waitFor({ timeout: 30000 });
+  const warning = page.getByText('Its operator sees your username', { exact: false });
+  check('remote node with API login warns before a core login', await warning.isVisible());
+  await page.screenshot({ path: `${shots}/remote-warning.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Sign in this browser instead' }).click();
+  await page.getByText('Signing in this browser', { exact: false }).waitFor({ timeout: 30000 }).catch(() => {});
+  const saved = await sw.evaluate(() => chrome.storage.local.get('node'));
+  check('the switch keeps node and API login and signs in this browser', saved.node?.mode === 'local' && saved.node?.url === remote.url && saved.node?.user === remote.user && saved.node?.password === remote.password);
+  check('no warning after the switch', !(await warning.isVisible()));
+  await page.screenshot({ path: `${shots}/remote-switched.png`, fullPage: true });
 }
 
 check('no page errors', errors.length === 0, errors.join(' | '));

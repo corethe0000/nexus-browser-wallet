@@ -47,9 +47,9 @@ If the desktop wallet is logged in, the extension uses that login. Logging out i
 
 ## A node without the desktop wallet
 
-Any Nexus node works, also one in multi-user mode (`-multiuser=1`) that many people share. There the extension keeps its own session for that node (also across browser restarts, starting locked), every call carries it, and logging out ends only this wallet's session. New users can make an account in the extension (Log in > Create a new account: username at least 2, password at least 8, PIN at least 4 characters, as the core requires); it can be used after the next block.
+Any Nexus node works, also one in multi-user mode (`-multiuser=1`) that many people share. With a core login (your own node, or a remote one with an API login) the extension keeps its own session for that node (also across browser restarts, starting locked), every call carries it, and logging out ends only this wallet's session. New users can make an account in the extension (Log in > Create a new account: username at least 2, password at least 8, PIN at least 4 characters, as the core requires); it can be used after the next block.
 
-A node on another computer sees the username, password and PIN of everyone who logs in through it, the wallet says so on the setup and login screens (not with Sign in this browser, where the node never gets the login). Use your own node or one you trust.
+A node on another computer sees the username, password and PIN of everyone who logs in through it with a core login. So a remote node without an API login (anybody's node, such as node1.nexus.io) is always used with Sign in this browser (src/lib/settings.ts `withSafeMode`, also for a node saved before this rule), and there the node never gets the login. A remote node with an API login (normally your own server, needed for staking there) keeps the choice; its login screen warns and offers "Sign in this browser instead".
 
 Public single-user nodes: the official seed nodes node3.nexus.io and node5.nexus.io (port 8080, checked 2026-11-10) answer the API to anyone, on mainnet, single-user and without an API login. There one login is shared by every caller, so the wallet refuses to log in or create an account on any remote single-user node without an API user (src/lib/settings.ts isSharedLogin).
 

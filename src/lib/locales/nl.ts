@@ -368,6 +368,8 @@ export const nl: Texts = {
   suggestDesktop: 'Desktopwallet op deze computer: API-gebruiker apiserver, API-wachtwoord uit nexus.conf',
   suggestPublic: 'Openbare Nexus-node: geen API-login, alleen met Ondertekenen in deze browser',
   apiLoginLocal: 'Laat API-gebruiker en API-wachtwoord leeg voor een openbare node.',
+  signHereInstead: 'Liever ondertekenen in deze browser',
+  localModeForced: 'Een node op een andere computer zonder API-login wordt altijd gebruikt met Ondertekenen in deze browser: die krijgt nooit je gebruikersnaam, wachtwoord of pincode.',
   localLoginNote: 'Ondertekenen in deze browser: een profiel dat hier, in de desktopwallet of op een willekeurige node is gemaakt, werkt.',
   localCreateNote: 'Het profiel wordt in deze extensie gemaakt, de node krijgt alleen de kant-en-klare transactie. Op mainnet vraagt het netwerk eerst een kleine proof of work: houd dit venster open, het duurt een tot drie minuten.',
   localCreateWorking: 'Bezig met proof of work... {n} pogingen',

@@ -368,6 +368,8 @@ export const fr: Texts = {
   suggestDesktop: 'Portefeuille de bureau sur cet ordinateur : utilisateur API apiserver, mot de passe API dans nexus.conf',
   suggestPublic: 'Nœud Nexus public : sans identifiant API, uniquement avec Signer dans ce navigateur',
   apiLoginLocal: 'Pour un nœud public, laissez vides l\'utilisateur et le mot de passe API.',
+  signHereInstead: 'Signer plutôt dans ce navigateur',
+  localModeForced: 'Un nœud sur un autre ordinateur sans identifiant API est toujours utilisé avec Signer dans ce navigateur : il ne reçoit jamais votre nom d\'utilisateur, mot de passe ni PIN.',
   localLoginNote: 'Signature dans ce navigateur : un profil créé ici, dans le portefeuille de bureau ou sur n\'importe quel nœud fonctionne.',
   localCreateNote: 'Le profil est créé dans cette extension, le nœud ne reçoit que la transaction finale. Sur le mainnet, le réseau demande d\'abord une petite preuve de travail : laissez cette fenêtre ouverte, cela prend une à trois minutes.',
   localCreateWorking: 'Calcul de la preuve de travail... {n} essais',

@@ -15,14 +15,38 @@ export const minRecovery = 40;
 
 export function RemoteNodeWarning() {
   const { t, status } = useApp();
-  if (status.sharedLogin) {
-    return <div className="notice error small">{t.sharedLoginWarning}</div>;
-  }
   //signing in this browser: the node never gets the login
   if (!status.remote || status.localMode) {
     return null;
   }
-  return <div className="notice warn small">{t.remoteNodeWarning}</div>;
+  return (
+    <div className={`notice small ${status.sharedLogin ? 'error' : 'warn'}`}>
+      <div>{status.sharedLogin ? t.sharedLoginWarning : t.remoteNodeWarning}</div>
+      <SignHereButton />
+    </div>
+  );
+}
+
+//same node, same API login, but the login stays in this browser from now on
+function SignHereButton() {
+  const { t, refresh } = useApp();
+  const { busy, error, run } = useAction();
+  return (
+    <>
+      <button
+        type="button"
+        className="btn tiny"
+        disabled={busy}
+        onClick={() => run(async () => {
+          await ask('signHere');
+          await refresh();
+        })}
+      >
+        {t.signHereInstead}
+      </button>
+      <ErrorBox error={error} />
+    </>
+  );
 }
 
 export function Login() {

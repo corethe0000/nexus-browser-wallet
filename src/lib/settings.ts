@@ -10,10 +10,21 @@ const langKey = 'lang';
 export async function loadNode(): Promise<NodeSettings | null> {
   const got = await browser.storage.local.get(nodeKey);
   const node = got[nodeKey] as NodeSettings | undefined;
-  return node?.url ? { ...defaultNode, ...node } : null;
+  return node?.url ? withSafeMode({ ...defaultNode, ...node }) : null;
 }
 
-export async function saveNode(node: NodeSettings): Promise<NodeSettings> {
+//a node on another computer without an API login is anybody's node (node1.nexus.io): a core login there would hand
+//it username, password and PIN, so the wallet signs in this browser and the node only reads and gets signed txs
+export function mustSignHere(node: Pick<NodeSettings, 'url' | 'user'>): boolean {
+  return !!node.url.trim() && isRemote(normalizeUrl(node.url)) && !node.user.trim();
+}
+
+export function withSafeMode(node: NodeSettings): NodeSettings {
+  return mustSignHere(node) && node.mode !== 'local' ? { ...node, mode: 'local' } : node;
+}
+
+export async function saveNode(input: NodeSettings): Promise<NodeSettings> {
+  const node = withSafeMode(input);
   const clean: NodeSettings = { url: normalizeUrl(node.url), user: node.user.trim(), password: node.password };
   if (node.mode === 'local') {
     clean.mode = 'local';

@@ -368,6 +368,8 @@ export const pl: Texts = {
   suggestDesktop: 'Portfel desktopowy na tym komputerze: użytkownik API apiserver, hasło API z nexus.conf',
   suggestPublic: 'Publiczny węzeł Nexus: bez logowania API, tylko z Podpisuj w tej przeglądarce',
   apiLoginLocal: 'Dla publicznego węzła zostaw użytkownika API i hasło API puste.',
+  signHereInstead: 'Zamiast tego podpisuj w tej przeglądarce',
+  localModeForced: 'Węzeł na innym komputerze bez logowania API jest zawsze używany z Podpisuj w tej przeglądarce: nigdy nie dostaje twojej nazwy użytkownika, hasła ani PIN-u.',
   localLoginNote: 'Podpisywanie w tej przeglądarce: działa profil utworzony tutaj, w portfelu desktopowym lub na dowolnym węźle.',
   localCreateNote: 'Profil jest tworzony w tym rozszerzeniu, węzeł dostaje tylko gotową transakcję. W mainnecie sieć najpierw wymaga niewielkiego proof of work: nie zamykaj tego okna, trwa to od jednej do trzech minut.',
   localCreateWorking: 'Obliczanie proof of work... prób: {n}',

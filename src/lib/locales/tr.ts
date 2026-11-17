@@ -368,6 +368,8 @@ export const tr: Texts = {
   suggestDesktop: 'Bu bilgisayardaki masaüstü cüzdan: API kullanıcısı apiserver, API şifresi nexus.conf içinde',
   suggestPublic: 'Herkese açık Nexus düğümü: API girişi yok, yalnızca Bu tarayıcıda imzala ile',
   apiLoginLocal: 'Herkese açık bir düğüm için API kullanıcısını ve API şifresini boş bırakın.',
+  signHereInstead: 'Bunun yerine bu tarayıcıda imzala',
+  localModeForced: 'API girişi olmayan başka bir bilgisayardaki düğüm her zaman Bu tarayıcıda imzala ile kullanılır: kullanıcı adınızı, şifrenizi veya PIN kodunuzu asla almaz.',
   localLoginNote: 'Bu tarayıcıda imzalama: burada, masaüstü cüzdanda veya herhangi bir düğümde oluşturulan profil çalışır.',
   localCreateNote: 'Profil bu eklentide oluşturulur, düğüm yalnızca hazır işlemi alır. Mainnet üzerinde ağ önce küçük bir proof of work ister: bu pencereyi açık tutun, bir ile üç dakika sürer.',
   localCreateWorking: 'Proof of work hesaplanıyor... {n} deneme',

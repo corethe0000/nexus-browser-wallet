@@ -368,6 +368,8 @@ export const fil: Texts = {
   suggestDesktop: 'Desktop wallet sa computer na ito: API user apiserver, API password mula sa nexus.conf',
   suggestPublic: 'Pampublikong Nexus node: walang API login, para lang sa Pumirma sa browser na ito',
   apiLoginLocal: 'Iwanang blangko ang API user at API password para sa pampublikong node.',
+  signHereInstead: 'Pumirma na lang sa browser na ito',
+  localModeForced: 'Ang node sa ibang computer na walang API login ay laging ginagamit sa Pumirma sa browser na ito: hindi nito kailanman makukuha ang iyong username, password o PIN.',
   localLoginNote: 'Pagpirma sa browser na ito: gumagana ang profile na ginawa dito, sa desktop wallet o sa kahit anong node.',
   localCreateNote: 'Ginagawa ang profile sa extension na ito, ang tapos na transaction lang ang natatanggap ng node. Sa mainnet, humihingi muna ang network ng maliit na proof of work: huwag isara ang window na ito, aabutin ito ng isa hanggang tatlong minuto.',
   localCreateWorking: 'Ginagawa ang proof of work... {n} subok',

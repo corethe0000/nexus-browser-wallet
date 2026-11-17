@@ -1,7 +1,7 @@
 import { ErrorCodes, NexusError, normalizeUrl, type NodeSettings } from '../lib/node';
 import { isSharedLogin } from '../lib/settings';
 import { importContacts, listContacts } from '../lib/contacts';
-import { defaultExplorer, forgetNode, isExplorerUrl, isRemote, loadExplorer, saveExplorer, loadLang, loadNode, loadNodeChange, loadSavedNodes, removeSavedNode, sameNode, saveLang, saveNode, setNodeChange } from '../lib/settings';
+import { defaultExplorer, forgetNode, isExplorerUrl, isRemote, loadExplorer, saveExplorer, loadLang, loadNode, loadNodeChange, loadSavedNodes, removeSavedNode, sameNode, saveLang, saveNode, setNodeChange, withSafeMode } from '../lib/settings';
 import { isLocked, lockChoices, lockMinutes, lockNow, setLockMinutes, touch } from '../lib/lock';
 import { Wallet } from '../lib/wallet';
 import { LocalWallet } from '../lib/local-wallet';
@@ -332,7 +332,8 @@ async function importSettings(raw: unknown): Promise<{ node: NodeSettings | null
 }
 
 //tests a core first and keeps the old settings when the new one does not answer
-async function applyNode(node: NodeSettings, old: NodeSettings | null) {
+async function applyNode(input: NodeSettings, old: NodeSettings | null) {
+  const node = withSafeMode(input);
   const before = old ? await (await walletFor(old)).session().catch(() => null) : null;
   const st = await status(node);
   if (st.nodeError && !st.node) {
@@ -353,7 +354,7 @@ async function applyNode(node: NodeSettings, old: NodeSettings | null) {
 }
 
 //requests that work while the wallet is locked
-const openWhileLocked = new Set(['status', 'resetNode', 'unlock', 'unlockChallenge', 'unlockVerified', 'cryptoRegister', 'approvalGet', 'approvalReject', 'lock', 'login', 'createProfile', 'recoverProfile', 'getSettings', 'localNetwork', 'submitGenesis', 'profileExists']);
+const openWhileLocked = new Set(['status', 'resetNode', 'signHere', 'unlock', 'unlockChallenge', 'unlockVerified', 'cryptoRegister', 'approvalGet', 'approvalReject', 'lock', 'login', 'createProfile', 'recoverProfile', 'getSettings', 'localNetwork', 'submitGenesis', 'profileExists']);
 
 async function handle(msg: Message): Promise<unknown> {
   //the first setup has nothing to protect yet
@@ -451,6 +452,14 @@ async function handle(msg: Message): Promise<unknown> {
       const known = (await loadSavedNodes()).find((n) => sameNode(n, { url, user: msg.node.user.trim() }));
       const node = { ...msg.node, url, password: msg.node.password || (old && old.url === url ? old.password : (known?.password ?? '')) };
       return applyNode(node, old);
+    }
+    //same node and API login, only the login stays in this browser: allowed while locked, it can only show the node less
+    case 'signHere': {
+      const node = await loadNode();
+      if (!node) {
+        throw new NexusError(-1010, 'No node set up yet');
+      }
+      return applyNode({ ...node, mode: 'local' }, node);
     }
     case 'savedNodes': {
       const current = await loadNode();

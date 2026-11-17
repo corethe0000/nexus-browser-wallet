@@ -368,6 +368,8 @@ export const it: Texts = {
   suggestDesktop: 'Wallet desktop su questo computer: utente API apiserver, password API da nexus.conf',
   suggestPublic: 'Nodo Nexus pubblico: senza login API, solo con Firma in questo browser',
   apiLoginLocal: 'Per un nodo pubblico lascia vuoti utente e password API.',
+  signHereInstead: 'Firma invece in questo browser',
+  localModeForced: 'Un nodo su un altro computer senza login API si usa sempre con Firma in questo browser: non riceve mai nome utente, password o PIN.',
   localLoginNote: 'Firma in questo browser: funziona un profilo creato qui, nel wallet desktop o su qualsiasi nodo.',
   localCreateNote: 'Il profilo viene creato in questa estensione, il nodo riceve solo la transazione finita. Su mainnet la rete chiede prima una piccola proof of work: tieni aperta questa finestra, ci vogliono da uno a tre minuti.',
   localCreateWorking: 'Calcolo della proof of work... {n} tentativi',

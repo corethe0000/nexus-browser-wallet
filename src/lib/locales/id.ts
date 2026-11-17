@@ -368,6 +368,8 @@ export const id: Texts = {
   suggestDesktop: 'Dompet desktop di komputer ini: pengguna API apiserver, kata sandi API dari nexus.conf',
   suggestPublic: 'Node Nexus publik: tanpa login API, hanya dengan Tanda tangani di browser ini',
   apiLoginLocal: 'Kosongkan pengguna API dan kata sandi API untuk node publik.',
+  signHereInstead: 'Tanda tangani di browser ini saja',
+  localModeForced: 'Node di komputer lain tanpa login API selalu dipakai dengan Tanda tangani di browser ini: node itu tidak pernah menerima nama pengguna, kata sandi, atau PIN Anda.',
   localLoginNote: 'Tanda tangan di browser ini: profil yang dibuat di sini, di dompet desktop, atau di node mana pun bisa dipakai.',
   localCreateNote: 'Profil dibuat di ekstensi ini, node hanya menerima transaksi yang sudah jadi. Di mainnet, jaringan meminta proof of work kecil dulu: biarkan jendela ini terbuka, prosesnya satu sampai tiga menit.',
   localCreateWorking: 'Mengerjakan proof of work... {n} percobaan',

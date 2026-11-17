@@ -368,6 +368,8 @@ export const en = {
   suggestDesktop: 'Desktop wallet on this computer: API user apiserver, API password from nexus.conf',
   suggestPublic: 'Public Nexus node: no API login, only with Sign in this browser',
   apiLoginLocal: 'Leave API user and password empty for a public node.',
+  signHereInstead: 'Sign in this browser instead',
+  localModeForced: 'A node on another computer without an API login is always used with Sign in this browser: it never gets your username, password or PIN.',
   localLoginNote: 'Signing in this browser: a profile made here, in the desktop wallet or on any node works.',
   localCreateNote: 'The profile is made in this extension, the node only gets the finished transaction. On mainnet the network asks a small proof of work first: keep this window open, it takes one to three minutes.',
   localCreateWorking: 'Working on the proof of work... {n} tries',

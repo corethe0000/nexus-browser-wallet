@@ -368,6 +368,8 @@ export const hr: Texts = {
   suggestDesktop: 'Desktop novčanik na ovom računalu: API korisnik apiserver, API lozinka iz nexus.conf',
   suggestPublic: 'Javni Nexus node: bez API prijave, samo uz Potpisuj u ovom pregledniku',
   apiLoginLocal: 'Za javni node ostavi API korisnika i API lozinku prazne.',
+  signHereInstead: 'Radije potpisuj u ovom pregledniku',
+  localModeForced: 'Node na drugom računalu bez API prijave uvijek se koristi uz Potpisuj u ovom pregledniku: nikad ne dobiva tvoje korisničko ime, lozinku ni PIN.',
   localLoginNote: 'Potpisivanje u ovom pregledniku: radi profil napravljen ovdje, u desktop novčaniku ili na bilo kojem nodeu.',
   localCreateNote: 'Profil se radi u ovom proširenju, node dobiva samo gotovu transakciju. Na mainnetu mreža prvo traži mali dokaz rada: ostavi ovaj prozor otvoren, traje jednu do tri minute.',
   localCreateWorking: 'Radim dokaz rada... {n} pokušaja',

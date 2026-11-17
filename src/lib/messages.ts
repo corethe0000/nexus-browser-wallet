@@ -70,6 +70,7 @@ export interface RequestMap {
   setLockMinutes: { req: { minutes: number }; res: null };
   exportSettings: { req: {}; res: unknown };
   resetNode: { req: {}; res: null };
+  signHere: { req: {}; res: WalletStatus };
   importSettings: { req: { data: unknown }; res: { node: NodeSettings | null; contacts: number } };
   removeSite: { req: { origin: string }; res: null };
 }

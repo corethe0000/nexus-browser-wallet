@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ask } from '../../../lib/messages';
 import { defaultNode, normalizeUrl, type NodeSettings } from '../../../lib/node';
-import { nodeOrigin, suggestedNodes } from '../../../lib/settings';
+import { mustSignHere, nodeOrigin, suggestedNodes } from '../../../lib/settings';
 import { useApp } from '../context';
 import { useAction } from '../useAction';
 import { ErrorBox, Field, Header } from '../components';
@@ -27,6 +27,10 @@ export function Setup() {
       });
     }
   }, []);
+
+  //a remote node without an API login is only used signing in this browser
+  const forced = mustSignHere(node);
+  const signHere = forced || node.mode === 'local';
 
   const set = (k: keyof NodeSettings) => (e: React.ChangeEvent<HTMLInputElement>) => setNode({ ...node, [k]: e.target.value });
 
@@ -92,14 +96,15 @@ export function Setup() {
         <Field label={t.apiUser}>
           <input value={node.user} onChange={set('user')} spellCheck={false} autoComplete="off" />
         </Field>
-        <Field label={t.apiPassword} hint={node.mode === 'local' ? t.apiLoginLocal : t.setupWhere}>
+        <Field label={t.apiPassword} hint={signHere ? t.apiLoginLocal : t.setupWhere}>
           <input type="password" value={node.password} onChange={set('password')} autoComplete="off" placeholder={passwordFor && normalizeUrl(node.url) === passwordFor ? t.passwordSaved : ''} />
         </Field>
         <label className="check">
-          <input type="checkbox" checked={node.mode === 'local'} onChange={(e) => setNode({ ...node, mode: e.target.checked ? 'local' : undefined })} />
+          <input type="checkbox" checked={signHere} disabled={forced} onChange={(e) => setNode({ ...node, mode: e.target.checked ? 'local' : undefined })} />
           <span>{t.localMode}</span>
         </label>
-        {node.mode === 'local' && (
+        {forced && <p className="small muted">{t.localModeForced}</p>}
+        {signHere && (
           <>
             <p className="small muted">{t.localModeHint}</p>
             <Field label={t.incomingIndex} hint={t.incomingIndexHint}>

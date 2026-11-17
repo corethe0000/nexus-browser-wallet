@@ -368,6 +368,8 @@ export const pt: Texts = {
   suggestDesktop: 'Carteira desktop neste computador: usuário da API apiserver, senha da API do nexus.conf',
   suggestPublic: 'Nó público da Nexus: sem login de API, só com Assinar neste navegador',
   apiLoginLocal: 'Para um nó público deixe o usuário e a senha da API vazios.',
+  signHereInstead: 'Assinar neste navegador em vez disso',
+  localModeForced: 'Um nó em outro computador sem login de API é sempre usado com Assinar neste navegador: ele nunca recebe seu usuário, senha ou PIN.',
   localLoginNote: 'Assinatura neste navegador: funciona um perfil criado aqui, na carteira desktop ou em qualquer nó.',
   localCreateNote: 'O perfil é criado nesta extensão, o nó só recebe a transação final. Na mainnet a rede pede primeiro uma pequena prova de trabalho: mantenha esta janela aberta, demora entre um e três minutos.',
   localCreateWorking: 'A calcular a prova de trabalho... {n} tentativas',
