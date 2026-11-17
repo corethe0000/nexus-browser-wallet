@@ -9,7 +9,7 @@ import { accountStateOf, accountTypes, checkCredentials, findGenesis, ProfileErr
 import { clearLocalKeys, loadLastSubmitted, saveLastSubmitted, saveLocalKeys, type LocalKeys } from './local-keys';
 import { recentBlocks } from './blocks';
 import { defaultExpiry, expirySeconds, isExpired } from './claims';
-import { fillContracts, orderContract, orderTerms, type OrderTerms, invoiceContracts, invoiceData, invoicePayment, invoiceTerms, newInvoiceAddress, claimContract, stateAfter, transferContract, type RegisterState, accountContracts, addressOfMemory, assetContract, assetData, globalNameFee, nameContract, newAssetAddress, newTokenAddress, objectFee, tokenContract, tokenFee, feeContract, memoryOfAddress, nameFee, newAccountAddress, recoveryKey, credentialsContract, creditContract, debitContract, expiryCondition, nextHashOf, parseTx, sequenceKey, signTx, type AccountState, type CreditParams, type CryptoFields, type PrevTx } from './tritium';
+import { fillContracts, orderContract, orderTerms, type OrderTerms, invoiceContracts, invoiceData, invoicePayment, invoiceTerms, newInvoiceAddress, claimContract, stateAfter, transferContract, type RegisterState, accountContracts, addressOfMemory, assetContract, assetData, globalNameFee, nameContract, newAssetAddress, newTokenAddress, objectFee, tokenContract, tokenFee, feeContract, memoryOfAddress, memoryOfHex, globalNamespaceMemory, nameRegisterAddress, namespaceMemory, nameFee, newAccountAddress, recoveryKey, credentialsContract, creditContract, debitContract, expiryCondition, nextHashOf, parseTx, sequenceKey, signTx, type AccountState, type CreditParams, type CryptoFields, type PrevTx } from './tritium';
 import { formatAmount, isAddress } from './format';
 import * as htlc from './htlc';
 import type { SwapShown, SwapStep } from './swap-step';
@@ -383,12 +383,55 @@ export class LocalWallet extends Wallet {
     }
   }
 
+  private async nameRegister(address: string, name: string): Promise<any | null> {
+    const r = await this.call<any>('register/get/any', { address }).catch(() => null);
+    return r?.type === 'NAME' && r.name === name ? r : null;
+  }
+
+  //same search order as the core's names/get/name (Names::GetName), but the name register is read with register/get/any:
+  //multi-user nodes such as node1.nexus.io want a session for names/get
+  private async lookupName(name: string): Promise<any | null> {
+    const own = this.keys ? memoryOfHex(this.keys.genesis) : null;
+    //user::name = the caller's own local name
+    if (name.startsWith('user::')) {
+      const local = name.slice(6);
+      const found = own ? await this.nameRegister(nameRegisterAddress(local, own), local) : null;
+      if (found) {
+        return found;
+      }
+    } else {
+      const global = await this.nameRegister(nameRegisterAddress(name, globalNamespaceMemory()), name);
+      if (global) {
+        return global;
+      }
+    }
+    const ns = name.indexOf('::');
+    if (ns >= 0) {
+      const local = name.slice(ns + 2);
+      const found = await this.nameRegister(nameRegisterAddress(local, namespaceMemory(name.slice(0, ns))), local);
+      if (found) {
+        return found;
+      }
+    }
+    const user = name.indexOf(':');
+    if (user >= 0 && ns < 0) {
+      const username = name.slice(0, user);
+      const local = name.slice(user + 1);
+      const genesis = this.keys && username === this.keys.username ? this.keys.genesis : await this.findGenesis(username).then((g) => g.genesis).catch(() => null);
+      const found = genesis ? await this.nameRegister(nameRegisterAddress(local, memoryOfHex(genesis)), local) : null;
+      if (found) {
+        return found;
+      }
+    }
+    return own ? this.nameRegister(nameRegisterAddress(name, own), name) : null;
+  }
+
   private async resolveAccount(to: string): Promise<string> {
     const t = to.trim();
     if (isAddress(t)) {
       return t;
     }
-    const n = await this.call<any>('names/get/name', { name: t }).catch(() => null);
+    const n = await this.lookupName(t);
     if (!n?.register) {
       throw new NexusError(-13, `No account named ${t}`);
     }
@@ -991,7 +1034,7 @@ export class LocalWallet extends Wallet {
     const k = this.need();
     const label = name.trim();
     const tokenId = token && token !== '0' && token.toUpperCase() !== 'NXS' ? token : '0';
-    if (label && (await this.call<any>('names/get/name', { name: `${k.username}:${label}` }).catch(() => null))) {
+    if (label && (await this.lookupName(`${k.username}:${label}`))) {
       throw new NexusError(-97, 'You already have something with this name');
     }
     if (tokenId !== '0' && (await this.call<any>('register/get/any', { address: tokenId }).catch(() => null))?.type !== 'TOKEN') {
@@ -1016,7 +1059,7 @@ export class LocalWallet extends Wallet {
       return () => [];
     }
     const k = this.need();
-    const def = await this.call<any>('names/get/name', { name: `${k.username}:default` }).catch(() => null);
+    const def = await this.lookupName(`${k.username}:default`);
     if (!def?.register) {
       throw new NexusError(-163, 'Could not find your default NXS account to pay the fee');
     }
@@ -1029,7 +1072,7 @@ export class LocalWallet extends Wallet {
 
   private async refuseTakenName(name: string, global: boolean): Promise<void> {
     const k = this.need();
-    const found = await this.call<any>('names/get/name', { name: global ? name : `${k.username}:${name}` }).catch(() => null);
+    const found = await this.lookupName(global ? name : `${k.username}:${name}`);
     if (found) {
       throw new NexusError(-97, 'This name is taken');
     }

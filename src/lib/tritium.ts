@@ -816,13 +816,24 @@ export function tokenContract(genesis: string, token: Uint8Array, supply: bigint
   return createContract(token, tokenData(supply, token, supply, decimals), memoryOfHex(genesis), timestamp);
 }
 
+//Address(name, NAMESPACE): a namespace register, ~GLOBAL~ for global names
+export function namespaceMemory(namespace: string): Uint8Array {
+  const mem = sk256(enc.encode(namespace));
+  mem[31] = addrNamespace;
+  return mem;
+}
+
+//base58 address of the name register of `name` in a namespace (namespaceMemory) or a profile (memoryOfHex(genesis))
+export function nameRegisterAddress(name: string, namespace: Uint8Array): string {
+  return addressOfMemory(namedAddress(name, namespace, addrName));
+}
+
+export const globalNamespaceMemory = () => namespaceMemory(globalNamespace);
+
 //a local name lives in the profile's namespace, a global one in the namespace everybody shares
 export function nameContract(genesis: string, name: string, register: Uint8Array, global: boolean, timestamp: number): Uint8Array {
   const owner = memoryOfHex(genesis);
-  const namespace = global ? sk256(enc.encode(globalNamespace)) : owner;
-  if (global) {
-    namespace[31] = addrNamespace;
-  }
+  const namespace = global ? globalNamespaceMemory() : owner;
   return createContract(namedAddress(name, namespace, addrName), nameData(global ? globalNamespace : '', name, register), owner, timestamp);
 }
 
