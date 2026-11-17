@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { ask } from '../../../lib/messages';
-import { defaultNode, type NodeSettings } from '../../../lib/node';
-import { nodeOrigin } from '../../../lib/settings';
+import { defaultNode, normalizeUrl, type NodeSettings } from '../../../lib/node';
+import { nodeOrigin, suggestedNodes } from '../../../lib/settings';
 import { useApp } from '../context';
 import { useAction } from '../useAction';
 import { ErrorBox, Field, Header } from '../components';
 
 export function Setup() {
   //the saved API password stays in the background, an empty field keeps it for the same address
-  const [hasPassword, setHasPassword] = useState(false);
+  //url of the saved core whose API password the background keeps
+  const [passwordFor, setPasswordFor] = useState<string | null>(null);
   const { t, status, refresh, go, view } = useApp();
   const prefill = view.name === 'node' ? view.prefill : undefined;
   const [node, setNode] = useState<NodeSettings>(defaultNode);
@@ -21,7 +22,7 @@ export function Setup() {
       ask('getNode').then((n) => {
         if (n) {
           setNode({ url: n.url, user: n.user, password: '', mode: n.mode, index: n.index });
-          setHasPassword(n.hasPassword);
+          setPasswordFor(n.hasPassword ? n.url : null);
         }
       });
     }
@@ -61,14 +62,38 @@ export function Setup() {
       )}
       <form className="page" onSubmit={submit}>
         {prefill ? <div className="notice warn small">{t.importedNode}</div> : <p className="muted">{t.setupIntro}</p>}
+        {!prefill && (
+          <section className="card">
+            <h2>{t.suggestedNodes}</h2>
+            <p className="small muted">{t.suggestedNodesHint}</p>
+            <ul className="list">
+              {suggestedNodes.map((s) => (
+                <li key={s.node.url}>
+                  <div className="grow">
+                    <div className="name mono small break">{s.node.url}</div>
+                    <div className="small muted">{s.kind === 'desktop' ? t.suggestDesktop : t.suggestPublic}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn tiny"
+                    disabled={busy}
+                    onClick={() => setNode({ ...s.node, index: s.kind === 'public' ? undefined : node.index })}
+                  >
+                    {t.useNode}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <Field label={t.nodeUrl}>
-          <input value={node.url} onChange={set('url')} spellCheck={false} required />
+          <input value={node.url} onChange={set('url')} spellCheck={false} placeholder={defaultNode.url} required />
         </Field>
         <Field label={t.apiUser}>
           <input value={node.user} onChange={set('user')} spellCheck={false} autoComplete="off" />
         </Field>
-        <Field label={t.apiPassword}>
-          <input type="password" value={node.password} onChange={set('password')} autoComplete="off" placeholder={hasPassword ? t.passwordSaved : ''} />
+        <Field label={t.apiPassword} hint={node.mode === 'local' ? t.apiLoginLocal : t.setupWhere}>
+          <input type="password" value={node.password} onChange={set('password')} autoComplete="off" placeholder={passwordFor && normalizeUrl(node.url) === passwordFor ? t.passwordSaved : ''} />
         </Field>
         <label className="check">
           <input type="checkbox" checked={node.mode === 'local'} onChange={(e) => setNode({ ...node, mode: e.target.checked ? 'local' : undefined })} />
@@ -82,7 +107,6 @@ export function Setup() {
             </Field>
           </>
         )}
-        <p className="small muted">{t.setupWhere}</p>
         <ErrorBox error={error} />
         <button className="btn primary block" disabled={busy}>
           {busy ? t.connecting : t.connect}

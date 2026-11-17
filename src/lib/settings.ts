@@ -52,6 +52,19 @@ export async function saveLang(lang: string): Promise<void> {
   await browser.storage.local.set({ [langKey]: lang });
 }
 
+//offered on the setup page; the public ones are Nexus seed nodes, node1 multi-user and node3 single-user
+//(checked 2026-11-17), so only with sign in this browser
+export interface SuggestedNode {
+  node: NodeSettings;
+  kind: 'desktop' | 'public';
+}
+
+export const suggestedNodes: SuggestedNode[] = [
+  { node: defaultNode, kind: 'desktop' },
+  { node: { url: 'http://node1.nexus.io:8080', user: '', password: '', mode: 'local' }, kind: 'public' },
+  { node: { url: 'http://node3.nexus.io:8080', user: '', password: '', mode: 'local' }, kind: 'public' },
+];
+
 //host permission pattern for a node url, null when the manifest already covers it
 export function nodeOrigin(url: string): string | null {
   const u = new URL(normalizeUrl(url));

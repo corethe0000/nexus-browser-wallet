@@ -18,7 +18,8 @@ export function RemoteNodeWarning() {
   if (status.sharedLogin) {
     return <div className="notice error small">{t.sharedLoginWarning}</div>;
   }
-  if (!status.remote) {
+  //signing in this browser: the node never gets the login
+  if (!status.remote || status.localMode) {
     return null;
   }
   return <div className="notice warn small">{t.remoteNodeWarning}</div>;

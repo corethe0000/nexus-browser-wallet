@@ -36,10 +36,12 @@ Chrome: Extensions > Developer mode > Load unpacked > `.output/chrome-mv3`. Fire
 
 ## Connect to the desktop wallet core
 
+The setup page offers suggested nodes (src/lib/settings.ts `suggestedNodes`): Use fills in the form, Connect saves it. The desktop wallet core on this computer, and the public Nexus nodes node1.nexus.io (multi-user) and node3.nexus.io (single-user), which are offered only with Sign in this browser.
+
 Start the Nexus desktop wallet, then in the extension enter:
 
 - Core address: `http://127.0.0.1:8080`
-- API user and password: `apiuser` and `apipassword` from `nexus.conf` in the core data folder (Windows `%APPDATA%\Nexus`, macOS `~/Library/Application Support/Nexus`, Linux `~/.Nexus`)
+- API user and password: `apiuser` (the desktop wallet uses `apiserver`) and `apipassword` from `nexus.conf` in the core data folder (Windows `%APPDATA%\Nexus`, macOS `~/Library/Application Support/Nexus`, Linux `~/.Nexus`)
 
 If the desktop wallet is logged in, the extension uses that login. Logging out in the extension logs out the core, and so the desktop wallet too.
 
@@ -47,7 +49,7 @@ If the desktop wallet is logged in, the extension uses that login. Logging out i
 
 Any Nexus node works, also one in multi-user mode (`-multiuser=1`) that many people share. There the extension keeps its own session for that node (also across browser restarts, starting locked), every call carries it, and logging out ends only this wallet's session. New users can make an account in the extension (Log in > Create a new account: username at least 2, password at least 8, PIN at least 4 characters, as the core requires); it can be used after the next block.
 
-A node on another computer sees the username, password and PIN of everyone who logs in through it, the wallet says so on the setup and login screens. Use your own node or one you trust.
+A node on another computer sees the username, password and PIN of everyone who logs in through it, the wallet says so on the setup and login screens (not with Sign in this browser, where the node never gets the login). Use your own node or one you trust.
 
 Public single-user nodes: the official seed nodes node3.nexus.io and node5.nexus.io (port 8080, checked 2026-11-10) answer the API to anyone, on mainnet, single-user and without an API login. There one login is shared by every caller, so the wallet refuses to log in or create an account on any remote single-user node without an API user (src/lib/settings.ts isSharedLogin).
 
@@ -206,6 +208,8 @@ Each language is one file in `src/lib/locales/` (`en.ts` is the reference). To a
 - `tests/e2e/manage.mjs`: create account, token, name and asset, send and cancel an invoice, change stake and start or stop staking (stake parts through `tests/fixtures/fixture-node.mjs`)
 - `tests/e2e/account.mjs`: recovery phrase, PIN and password change, recover (on frank of the multi-user test node, put back at the end)
 - `tests/e2e/local.mjs`: sign in this browser on the private chain (login, claim, send, wait for the block, activity, unlock)
+- `tests/e2e/suggested.mjs`: suggested nodes on the setup page in every language, `CONNECT=1` also opens the login against node1.nexus.io
+- `src/lib/names.int.test.ts`: name lookups against a multi-user node, compared with names/get/name of a single-user one
 - `src/lib/tritium.int.test.ts`, `tritium.claim.int.test.ts`: browser-signed debit and credit against a node (settings at the top of each file)
 - `tests/sdk/check.mjs`: the built developer package
 
